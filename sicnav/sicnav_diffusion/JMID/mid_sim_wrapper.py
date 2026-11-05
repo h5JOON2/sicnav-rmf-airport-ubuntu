@@ -270,6 +270,11 @@ class HumanTrajectoryForecasterSim(ForecasterSimSuper):
         agent_df = agent_df.sort_values(by=["time"])
 
         subsampled_df = self.subsample_df(agent_df).tail(self.num_hist_frames)
+        if len(subsampled_df) < self.num_hist_frames and len(subsampled_df) > 0:
+            pad_count = self.num_hist_frames - len(subsampled_df)
+            first_row = subsampled_df.iloc[[0]]
+            pad_df = pd.concat([first_row] * pad_count, ignore_index=True)
+            subsampled_df = pd.concat([pad_df, subsampled_df], ignore_index=True)
         data = self.expand_df(subsampled_df)
         data["frame_id"] = pd.to_numeric(
             data["frame_id"], downcast="integer"

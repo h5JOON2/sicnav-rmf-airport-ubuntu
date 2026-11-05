@@ -307,9 +307,9 @@ class MID:
 
             timestep_step_size = 1
             assert timestep_step_size == 1, "For joint prediction, timestep_step_size should be 1."
-            t = self.hyperparams["maximum_history_length"]  # set to num_history timestep
-            timesteps = np.arange(t, t + timestep_step_size)
-            # timesteps = torch.arange(t, t + timestep_step_size, device=self.device)
+            t = inference_scene.timesteps - 1 if hasattr(inference_scene, 'timesteps') and inference_scene.timesteps > 0 else self.hyperparams["maximum_history_length"]
+            max_ht = min(self.hyperparams["maximum_history_length"], t)
+            timesteps = np.array([t])
             batch = get_timesteps_data(
                 env=inference_env,
                 scene=inference_scene,
@@ -318,8 +318,8 @@ class MID:
                 state=self.hyperparams["state"],
                 pred_state=self.hyperparams["pred_state"],
                 edge_types=inference_env.get_edge_types(),
-                min_ht=self.hyperparams["maximum_history_length"],
-                max_ht=self.hyperparams["maximum_history_length"],
+                min_ht=max_ht,
+                max_ht=max_ht,
                 min_ft=0,
                 max_ft=0,
                 hyperparams=self.hyperparams,
