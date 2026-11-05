@@ -29,6 +29,8 @@ def generate_launch_description():
     z = LaunchConfiguration('z')
     yaw = LaunchConfiguration('yaw')
     namespace = LaunchConfiguration('namespace')
+    server_ip = LaunchConfiguration('server_ip')
+    server_port = LaunchConfiguration('server_port')
 
     declare_headless = DeclareLaunchArgument(
         'headless',
@@ -69,6 +71,16 @@ def generate_launch_description():
         'namespace', default_value='',
         description='Robot namespace'
     )
+    declare_server_ip = DeclareLaunchArgument(
+        'server_ip',
+        default_value=os.environ.get('SICNAV_SERVER_IP', '127.0.0.1'),
+        description='SICNav TCP Server IP address (default: 127.0.0.1 or env $SICNAV_SERVER_IP)'
+    )
+    declare_server_port = DeclareLaunchArgument(
+        'server_port',
+        default_value=os.environ.get('SICNAV_SERVER_PORT', '9090'),
+        description='SICNav TCP Server Port (default: 9090 or env $SICNAV_SERVER_PORT)'
+    )
 
     # -----------------------------
     # 2. Package paths
@@ -98,9 +110,22 @@ def generate_launch_description():
         maps_path
     )
 
+    # Dynamic plugin paths for RMF and Gazebo plugins (generic across any username / environment)
+    rmf_plugin_paths = [
+        '/opt/ros/jazzy/lib/rmf_building_sim_gz_plugins',
+        '/opt/ros/jazzy/lib'
+    ]
+    try:
+        from ament_index_python.packages import get_package_prefix
+        rmf_prefix = get_package_prefix('rmf_building_sim_gz_plugins')
+        rmf_plugin_paths.insert(0, os.path.join(rmf_prefix, 'lib', 'rmf_building_sim_gz_plugins'))
+        rmf_plugin_paths.insert(0, os.path.join(rmf_prefix, 'lib'))
+    except Exception:
+        pass
+
     gz_plugin_path = AppendEnvironmentVariable(
         'GZ_SIM_SYSTEM_PLUGIN_PATH',
-        '/home/leeojoon/sicnav_airport_ws/install/rmf_building_sim_gz_plugins/lib/rmf_building_sim_gz_plugins:/opt/ros/jazzy/lib/rmf_building_sim_gz_plugins:/opt/ros/jazzy/lib'
+        ':'.join(rmf_plugin_paths)
     )
 
 
@@ -176,7 +201,7 @@ def generate_launch_description():
 
     tcp_bridge_node = ExecuteProcess(
         condition=IfCondition(use_tcp_bridge),
-        cmd=['python3', tcp_bridge_script],
+        cmd=['python3', tcp_bridge_script, '--server_ip', server_ip, '--port', server_port],
         output='screen'
     )
 
@@ -189,6 +214,8 @@ def generate_launch_description():
         declare_z,
         declare_yaw,
         declare_namespace,
+        declare_server_ip,
+        declare_server_port,
 
         gz_resource_path,
         menge_resource_path,

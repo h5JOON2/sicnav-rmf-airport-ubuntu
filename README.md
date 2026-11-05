@@ -757,16 +757,23 @@ python3 run_tcp_server.py --host 0.0.0.0 --port 9090
 ```
 > `[*] SICNav TCP Server listening on 0.0.0.0:9090...` 메시지와 함께 클라이언트 접속을 대기합니다.
 
-### 2. UTM Ubuntu VM에서 Gazebo 시뮬레이터 & 클라이언트 실행
+### 2. 시뮬레이터 및 SICNav 클라이언트 실행
 
-Ubuntu 터미널에서:
+Ubuntu 터미널(또는 시뮬레이션 머신)에서:
 ```bash
-# 1) 공항 시뮬레이션 및 TurtleBot4 실행
-ros2 launch launch/airport_cropped_tb4.launch.py
+# 워크스페이스 환경 로드
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
 
-# 2) 별도 터미널에서 SICNav 연동 클라이언트 실행 (Mac 호스트 IP 지정)
-python3 scripts/sicnav_gazebo_client.py --server_ip 192.168.64.1 --port 9090
+# 1) 로컬 단일 PC에서 실행 시 (기본값 server_ip:=127.0.0.1 자동 연결)
+ros2 launch sicnav_airport_bringup airport_cropped_tb4.launch.py
+
+# 2) 별도 호스트(Mac/외부 GPU 워크스테이션) 서버와 분산 통신 시
+ros2 launch sicnav_airport_bringup airport_cropped_tb4.launch.py server_ip:=<호스트_IP>
+# (예: UTM 가상머신 환경일 경우)
+# ros2 launch sicnav_airport_bringup airport_cropped_tb4.launch.py server_ip:=192.168.64.1
 ```
+> `airport_cropped_tb4.launch.py`에 `--server_ip` 및 `--port` 인수가 기본 내장되어 있어, 환경변수(`export SICNAV_SERVER_IP=...`) 또는 런치 인수(`server_ip:=...`)로 유연하게 다른 컴퓨터나 로컬 환경에 연결할 수 있습니다.
 
 ---
 

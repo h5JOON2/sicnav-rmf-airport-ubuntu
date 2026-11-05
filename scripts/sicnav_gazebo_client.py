@@ -62,8 +62,18 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="SICNav Gazebo Client")
-    parser.add_argument("--server_ip", type=str, default="192.168.64.1", help="macOS Host IP")
-    parser.add_argument("--port", type=int, default=9090, help="macOS Server Port")
+    parser.add_argument(
+        "--server_ip",
+        type=str,
+        default=os.environ.get("SICNAV_SERVER_IP", "127.0.0.1"),
+        help="SICNav Server IP (default: 127.0.0.1 or env $SICNAV_SERVER_IP)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("SICNAV_SERVER_PORT", "9090")),
+        help="SICNav Server Port (default: 9090 or env $SICNAV_SERVER_PORT)",
+    )
     parser.add_argument("--goal_x", type=float, default=148.0, help="Robot Goal X (Airport global frame)")
     parser.add_argument("--goal_y", type=float, default=-41.7, help="Robot Goal Y (Airport global frame)")
     parser.add_argument("--rate", type=float, default=10.0, help="Control loop rate (Hz)")
@@ -205,8 +215,9 @@ class SicnavGazeboClient(Node):
             ]
 
         # Check goal distance
+        # Use 1.3m tolerance for continuous smooth fly-by waypoint transitions (prevents near-goal crawling)
         dist_to_goal = math.hypot(self.goal_x - rx, self.goal_y - ry)
-        if dist_to_goal < 0.8:
+        if dist_to_goal < 1.3:
             # Reached current goal: randomly choose next destination among candidates (> 4m away)
             valid_candidates = [
                 (gx, gy) for (gx, gy) in CANDIDATE_GOALS
