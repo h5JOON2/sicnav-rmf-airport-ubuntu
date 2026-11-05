@@ -187,6 +187,8 @@ class SICNavServer:
             if hasattr(self.policy, 'hum_traj_forecaster'):
                 self.policy.hum_traj_forecaster.prev_states = [[] for _ in range(self.num_humans)]
                 self.policy.hum_traj_forecaster.prev_robot_states = []
+            if hasattr(self.policy, 'async_worker') and self.policy.async_worker is not None:
+                self.policy.async_worker.reset_cache()
 
             try:
                 while True:

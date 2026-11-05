@@ -179,6 +179,9 @@ class SICNavAcados(Policy):
         self.priviledged_info = False
 
         self.do_callback_to_avoid_optifail = False
+        self.async_jmid = True
+        self.jmid_hz = 2.0
+        self.async_worker = None
 
 
     def configure(self, config):
@@ -213,6 +216,10 @@ class SICNavAcados(Policy):
         print('[CAMPC] Config {:} = {:}'.format('randomize_rob_goal', self.randomize_rob_goal))
         self.human_pred_MID_vanil_as_joint = config.getboolean('campc', 'human_pred_MID_vanil_as_joint')
         self.human_pred_AF = config.getboolean('campc', 'human_pred_AF')
+        self.async_jmid = config.getboolean('campc', 'async_jmid', fallback=True)
+        self.jmid_hz = config.getfloat('campc', 'jmid_hz', fallback=2.0)
+        print('[CAMPC] Config {:} = {:}'.format('async_jmid', self.async_jmid))
+        print('[CAMPC] Config {:} = {:}'.format('jmid_hz', self.jmid_hz))
         assert (self.human_pred_MID_joint or self.human_pred_MID_vanil_as_joint) and not (self.human_pred_MID_joint and self.human_pred_MID_vanil_as_joint), 'Configuration Error. Cannot have both joint predictions and use the iMID model'
 
     def init_warmstart_solver(self):
@@ -999,6 +1006,13 @@ class SICNavAcados(Policy):
         else:
             self.hum_traj_forecaster = HumanTrajectoryForecasterSim(env_config=self.env.config, mid_config_file="sicnav_diffusion/JMID/test_time_configs/mid.yaml")
 
+        if getattr(self, 'async_jmid', True):
+            from sicnav_diffusion.policy.async_jmid_worker import AsyncJMIDWorker
+            hz = getattr(self, 'jmid_hz', 2.0)
+            self.async_worker = AsyncJMIDWorker(self.hum_traj_forecaster, target_hz=hz)
+        else:
+            self.async_worker = None
+
     def init_gt_callback_orca(self, env, test_case):
         ob, static_obs = env.reset('test', test_case, return_stat=True)
         joint_state = env.robot.get_joint_state(ob, static_obs)
@@ -1638,10 +1652,12 @@ class SICNavAcados(Policy):
         # update the state provided by the sim environment here because there is no ros callback with simulator to do this stuff in.
         if self.human_goal_cvmm or self.human_pred_MID:
             if self.human_pred_MID:
-                self.hum_traj_forecaster.update_state_hists(state.self_state, state.human_states, self.env.global_time)
-                # shape of forecasts is (num_humans, num_samples, horiz, xy)
-                # forecasts = self.hum_traj_forecaster.predict()[:, :, 1:, :]
-                top_k_forecasts, top_k_weights = self.hum_traj_forecaster.predict_ret_best()
+                if getattr(self, 'async_worker', None) is not None:
+                    self.async_worker.update_and_trigger(state.self_state, state.human_states, self.env.global_time)
+                    top_k_forecasts, top_k_weights = self.async_worker.get_forecasts()
+                else:
+                    self.hum_traj_forecaster.update_state_hists(state.self_state, state.human_states, self.env.global_time)
+                    top_k_forecasts, top_k_weights = self.hum_traj_forecaster.predict_ret_best()
                 forecasts = top_k_forecasts[:, :, 1:, :]
                 if self.human_pred_MID_joint:
                     forecasts_init_weights = top_k_weights[0,:]

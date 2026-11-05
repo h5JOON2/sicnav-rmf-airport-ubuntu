@@ -196,14 +196,15 @@ class ForecasterSimSuper():
         self.prev_robot_states = []
 
     def update_state_hists(self, robot_state, human_states, time_stamp):
-        for i in range(self.num_hums):
-            self.prev_states[i].append([*human_states[i].position, time_stamp])
-            if len(self.prev_states[i]) > self.num_hist_frames:
-                self.prev_states[i].pop(0)
+        with self.prev_states_lock:
+            for i in range(self.num_hums):
+                self.prev_states[i].append([*human_states[i].position, time_stamp])
+                if len(self.prev_states[i]) > self.num_hist_frames:
+                    self.prev_states[i].pop(0)
 
-        self.prev_robot_states.append([*robot_state.position, time_stamp])
-        if len(self.prev_robot_states) > self.num_hist_frames:
-            self.prev_robot_states.pop(0)
+            self.prev_robot_states.append([*robot_state.position, time_stamp])
+            if len(self.prev_robot_states) > self.num_hist_frames:
+                self.prev_robot_states.pop(0)
 
 
 class HumanTrajectoryForecasterSim(ForecasterSimSuper):
@@ -486,8 +487,15 @@ class HumanTrajectoryForecasterSim(ForecasterSimSuper):
     # def _get_human_state_from_sim(self, human_id, time):
 
 
-    def predict_ret_best(self):
-        prev_state_env, last_poses, track_ids_in_cluster, track_ids_not_in_cluster, forecasts_dummy_dict = self.convert_to_mid_state_env(self.prev_states, self.prev_robot_states)
+    def predict_ret_best(self, prev_states=None, prev_robot_states=None):
+        if prev_states is None:
+            with self.prev_states_lock:
+                prev_states = [list(h) for h in self.prev_states]
+        if prev_robot_states is None:
+            with self.prev_states_lock:
+                prev_robot_states = list(self.prev_robot_states)
+
+        prev_state_env, last_poses, track_ids_in_cluster, track_ids_not_in_cluster, forecasts_dummy_dict = self.convert_to_mid_state_env(prev_states, prev_robot_states)
         # Generate trajectory forecasts
         forecasts_all_samples = self.mid_model.eval(prev_state_env)  # samples x num_hums x future timesteps x 2
             # Check if we need to return fewer samples than we have. If so, find the highest likelihood samples to return

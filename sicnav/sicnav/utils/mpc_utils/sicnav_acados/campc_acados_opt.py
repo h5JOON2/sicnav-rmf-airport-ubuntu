@@ -53,7 +53,7 @@ def export_campc_ocp(mpc_env, file_run_id=None):
     json_file = 'acados_cache/acados_sicnav_mpc_{:}.json'.format(hash)
     # code_export_dir = 'c_generated_code_0' if file_run_id is None else 'c_generated_code_{:}'.format(file_run_id)
     # json_file = 'acados_sicnav_mpc.json' if file_run_id is None else 'acados_sicnav_mpc_{:}.json'.format(file_run_id)
-    regen = not (os.path.exists(code_export_dir) and os.path.isdir(code_export_dir))
+    regen = not (os.path.exists(code_export_dir) and os.path.isdir(code_export_dir) and os.path.exists(json_file))
     # regen = True
 
     ocp = AcadosOcp()
