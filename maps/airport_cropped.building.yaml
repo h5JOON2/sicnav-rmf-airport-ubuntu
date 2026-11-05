@@ -1,0 +1,1895 @@
+crowd_sim:
+  agent_groups:
+  - agents_name:
+    - tinyRobot_3
+    - deliveryRobot_2
+    - tinyRobot_2
+    - deliveryRobot_0
+    - deliveryRobot_1
+    - tinyRobot_0
+    - tinyRobot_1
+    - cleanerBotE_0
+    - cleanerBotE_1
+    - cleanerBotA_0
+    agents_number: 10
+    group_id: 0
+    profile_selector: external_agent
+    state_selector: external_static
+    x: 0
+    y: 0
+  - agents_name:
+    - caddy
+    agents_number: 1
+    group_id: 0
+    profile_selector: external_agent
+    state_selector: external_static
+    x: 0.2
+    y: 0.2
+  - agents_name: []
+    agents_number: 2
+    group_id: 1
+    profile_selector: human
+    state_selector: crowd_goal1_state
+    x: 131.5
+    y: -32.31
+  - agents_name: []
+    agents_number: 2
+    group_id: 2
+    profile_selector: human
+    state_selector: crowd_goal2_state
+    x: 144.6
+    y: -32.01
+  - agents_name: []
+    agents_number: 2
+    group_id: 3
+    profile_selector: human
+    state_selector: crowd_goal3_state
+    x: 145.3
+    y: -45.35
+  - agents_name: []
+    agents_number: 2
+    group_id: 4
+    profile_selector: human
+    state_selector: crowd_goal4_state
+    x: 138
+    y: -41.74
+  - agents_name: []
+    agents_number: 2
+    group_id: 5
+    profile_selector: human
+    state_selector: crowd_goal5_state
+    x: 130.8
+    y: -45.1
+  agent_profiles:
+  - ORCA_tau: 1
+    ORCA_tauObst: 0.4
+    class: 1
+    max_accel: 0
+    max_angle_vel: 0
+    max_neighbors: 10
+    max_speed: 0
+    name: external_agent
+    neighbor_dist: 5
+    obstacle_set: 1
+    pref_speed: 0
+    r: 0.25
+  - ORCA_tau: 1
+    ORCA_tauObst: 0.4
+    class: 1
+    max_accel: 5
+    max_angle_vel: 360
+    max_neighbors: 10
+    max_speed: 4
+    name: human
+    neighbor_dist: 5
+    obstacle_set: 1
+    pref_speed: 2
+    r: 0.25
+  enable: 1
+  goal_sets:
+  - capacity: 10
+    set_area:
+    - crowd_goal1
+    set_id: 0
+  - capacity: 10
+    set_area:
+    - crowd_goal2
+    set_id: 1
+  - capacity: 10
+    set_area:
+    - crowd_goal3
+    set_id: 2
+  - capacity: 10
+    set_area:
+    - crowd_goal4
+    set_id: 3
+  - capacity: 10
+    set_area:
+    - crowd_goal5
+    set_id: 4
+  - capacity: 10
+    set_area:
+    - crowd_goal6
+    set_id: 5
+  - capacity: 10
+    set_area:
+    - crowd_goal7
+    set_id: 6
+  model_types:
+  - animation: walk
+    animation_speed: 1
+    init_pose:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    model_uri: model://MaleVisitorPhone
+    typename: human
+  obstacle_set:
+    class: 1
+    file_name: L1_navmesh.nav
+    type: nav_mesh
+  states:
+  - final: 1
+    goal_set: -1
+    name: external_static
+    navmesh_file_name: ''
+  - final: 0
+    goal_set: 0
+    name: crowd_goal1_state
+    navmesh_file_name: L1_navmesh.nav
+  - final: 0
+    goal_set: 1
+    name: crowd_goal2_state
+    navmesh_file_name: L1_navmesh.nav
+  - final: 0
+    goal_set: 2
+    name: crowd_goal3_state
+    navmesh_file_name: L1_navmesh.nav
+  - final: 0
+    goal_set: 3
+    name: crowd_goal4_state
+    navmesh_file_name: L1_navmesh.nav
+  - final: 0
+    goal_set: 4
+    name: crowd_goal5_state
+    navmesh_file_name: L1_navmesh.nav
+  - final: 0
+    goal_set: 5
+    name: crowd_goal6_state
+    navmesh_file_name: L1_navmesh.nav
+  - final: 0
+    goal_set: 6
+    name: crowd_goal7_state
+    navmesh_file_name: L1_navmesh.nav
+  transitions:
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal4_state
+      weight: 0.2
+    - name: crowd_goal2_state
+      weight: 0.4
+    - name: crowd_goal3_state
+      weight: 0.4
+    from: crowd_goal1_state
+    to: ''
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal1_state
+      weight: 0.4
+    - name: crowd_goal2_state
+      weight: 0.4
+    - name: crowd_goal5_state
+      weight: 0.2
+    from: crowd_goal2_state
+    to: ''
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal2_state
+      weight: 0.3
+    - name: crowd_goal4_state
+      weight: 0.3
+    - name: crowd_goal6_state
+      weight: 0.4
+    from: crowd_goal3_state
+    to: ''
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal1_state
+      weight: 0.2
+    - name: crowd_goal2_state
+      weight: 0.4
+    - name: crowd_goal3_state
+      weight: 0.4
+    from: crowd_goal4_state
+    to: ''
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal3_state
+      weight: 0.3
+    - name: crowd_goal4_state
+      weight: 0.3
+    - name: crowd_goal7_state
+      weight: 0.4
+    from: crowd_goal5_state
+    to: ''
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal3_state
+      weight: 0.5
+    - name: crowd_goal7_state
+      weight: 0.5
+    from: crowd_goal6_state
+    to: ''
+  - Condition:
+      condition1:
+        distance: 1
+        type: goal_reached
+      condition2:
+        dist: c
+        per_agent: true
+        type: timer
+        value: 5
+      type: or
+    Target:
+    - name: crowd_goal5_state
+      weight: 0.5
+    - name: crowd_goal6_state
+      weight: 0.5
+    from: crowd_goal7_state
+    to: ''
+  update_time_step: 0.1
+levels:
+  L1:
+    doors: []
+    drawing:
+      filename: airport_cropped_world.png
+    elevation: 0
+    flattened_x_offset: 0
+    flattened_y_offset: 0
+    floors: []
+    human_lanes:
+    - - 67
+      - 68
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    - - 68
+      - 69
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    - - 69
+      - 70
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    - - 70
+      - 71
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    - - 71
+      - 67
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    - - 73
+      - 70
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    - - 68
+      - 72
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 9
+        orientation:
+        - 1
+        - ''
+        width:
+        - 3
+        - 3
+    lanes:
+    - - 36
+      - 37
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 32
+      - 38
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 38
+      - 39
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 33
+      - 36
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 32
+      - 31
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 30
+      - 32
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 34
+      - 33
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 33
+      - 29
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 35
+      - 40
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 40
+      - 41
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 41
+      - 42
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 43
+      - 44
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 44
+      - 45
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 43
+      - 46
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 33
+      - 47
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 47
+      - 32
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 2
+        orientation:
+        - 1
+        - ''
+    - - 48
+      - 49
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 49
+      - 50
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 50
+      - 51
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 51
+      - 52
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 52
+      - 53
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 54
+      - 55
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 55
+      - 56
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 50
+      - 57
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 57
+      - 54
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 57
+      - 58
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 58
+      - 59
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 59
+      - 60
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 49
+      - 58
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 61
+      - 62
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 61
+      - 57
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 63
+      - 59
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 60
+      - 64
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 65
+      - 48
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 0
+        orientation:
+        - 1
+        - ''
+    - - 59
+      - 60
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 60
+      - 64
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 59
+      - 58
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 58
+      - 57
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 57
+      - 50
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 50
+      - 49
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 49
+      - 58
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 57
+      - 61
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 61
+      - 62
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 57
+      - 54
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 54
+      - 55
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 55
+      - 56
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 4
+        orientation:
+        - 1
+        - ''
+    - - 43
+      - 47
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    - - 47
+      - 40
+      - bidirectional:
+        - 4
+        - true
+        demo_mock_floor_name:
+        - 1
+        - ''
+        demo_mock_lift_name:
+        - 1
+        - ''
+        graph_idx:
+        - 2
+        - 1
+        orientation:
+        - 1
+        - ''
+    layers: {}
+    measurements:
+    - - 78
+      - 79
+      - distance:
+        - 3
+        - 3.0
+    models: []
+    vertices:
+    - - 1924.653
+      - 689.698
+      - 0
+      - ''
+    - - 1916.627
+      - 690.501
+      - 0
+      - ''
+    - - 1917.43
+      - 722.606
+      - 0
+      - ''
+    - - 1870.075
+      - 722.606
+      - 0
+      - ''
+    - - 1870.878
+      - 755.513
+      - 0
+      - ''
+    - - 1947.127
+      - 563.687
+      - 0
+      - ''
+    - - 1875.694
+      - 563.286
+      - 0
+      - ''
+    - - 1873.687
+      - 547.234
+      - 0
+      - ''
+    - - 1878.904
+      - 508.708
+      - 0
+      - ''
+    - - 1497.124
+      - 619.042
+      - 0
+      - ''
+    - - 1495.366
+      - 651.228
+      - 0
+      - ''
+    - - 1486.576
+      - 659.342
+      - 0
+      - ''
+    - - 1477.274
+      - 661.614
+      - 0
+      - ''
+    - - 1431.929
+      - 689.701
+      - 0
+      - ''
+    - - 1432.267
+      - 720.833
+      - 0
+      - ''
+    - - 1477.274
+      - 721.172
+      - 0
+      - ''
+    - - 1477.274
+      - 754.335
+      - 0
+      - ''
+    - - 1631.582
+      - 754.673
+      - 0
+      - ''
+    - - 1714.15
+      - 754.673
+      - 0
+      - ''
+    - - 1497.395
+      - 599.298
+      - 0
+      - ''
+    - - 1465.074
+      - 599.163
+      - 0
+      - ''
+    - - 1475.243
+      - 588.521
+      - 0
+      - ''
+    - - 1465.43
+      - 588.521
+      - 0
+      - ''
+    - - 1475.243
+      - 553.667
+      - 0
+      - ''
+    - - 1470.168
+      - 508.66
+      - 0
+      - ''
+    - - 1413.656
+      - 588.183
+      - 0
+      - ''
+    - - 1846.338
+      - 217.342
+      - 0
+      - ''
+    - - 1845.64
+      - 368.504
+      - 0
+      - ''
+    - - 1248.504
+      - 689.557
+      - 0
+      - ''
+    - - 1584.996
+      - 76.951
+      - 0
+      - junction_n18
+    - - 1821.934
+      - 129.564
+      - 0
+      - junction_n20
+    - - 2114.145
+      - 473.146
+      - 0
+      - ''
+    - - 1841.321
+      - 474.949
+      - 0
+      - junction_s11
+    - - 1525.798
+      - 478.893
+      - 0
+      - junction_s10
+    - - 1278.056
+      - 467.147
+      - 0
+      - ''
+    - - 1131.855
+      - 460.292
+      - 0
+      - ''
+    - - 1520.192
+      - 528.463
+      - 0
+      - ''
+    - - 1495.016
+      - 528.73
+      - 0
+      - s10
+      - is_holding_point:
+        - 4
+        - true
+        is_parking_spot:
+        - 4
+        - true
+    - - 1845.116
+      - 522.389
+      - 0
+      - ''
+    - - 1859.885
+      - 522.011
+      - 0
+      - s11
+      - is_holding_point:
+        - 4
+        - true
+        is_parking_spot:
+        - 4
+        - true
+    - - 1538.448
+      - 480.253
+      - 0
+      - junction_central_west
+    - - 1530.005
+      - 555.94
+      - 0
+      - ''
+    - - 1498.749
+      - 556.073
+      - 0
+      - s10
+      - is_holding_point:
+        - 4
+        - true
+        is_parking_spot:
+        - 4
+        - true
+    - - 1828.635
+      - 475.911
+      - 0
+      - junction_central_east
+    - - 1833.676
+      - 540.337
+      - 0
+      - ''
+    - - 1855.142
+      - 539.669
+      - 0
+      - s11
+      - is_charger:
+        - 4
+        - true
+        is_holding_point:
+        - 4
+        - true
+        is_parking_spot:
+        - 4
+        - true
+        spawn_robot_name:
+        - 1
+        - deliveryRobot_1
+        spawn_robot_type:
+        - 1
+        - Open-RMF/DeliveryRobot
+    - - 2246.059
+      - 471.244
+      - 0
+      - ''
+    - - 1680.904
+      - 497.644
+      - 0
+      - ''
+    - - 1429.672
+      - 631.172
+      - 0
+      - ''
+    - - 1540.508
+      - 631.344
+      - 0
+      - ''
+    - - 1570.707
+      - 393.481
+      - 0
+      - ''
+    - - 1534.155
+      - 328.233
+      - 0
+      - ''
+    - - 1477.21
+      - 325.884
+      - 0
+      - ''
+    - - 1477.21
+      - 344.67
+      - 0
+      - zone_1
+      - is_cleaning_zone:
+        - 4
+        - true
+    - - 1863.099
+      - 387.726
+      - 0
+      - ''
+    - - 1880.72
+      - 359.38
+      - 0
+      - ''
+    - - 1880.59
+      - 335.992
+      - 0
+      - zone_3
+      - is_cleaning_zone:
+        - 4
+        - true
+    - - 1792.451
+      - 389.216
+      - 0
+      - ''
+    - - 1818.61
+      - 634.908
+      - 0
+      - ''
+    - - 1850.262
+      - 635.345
+      - 0
+      - ''
+    - - 1850.315
+      - 677.033
+      - 0
+      - ''
+    - - 1813.811
+      - 355.792
+      - 0
+      - ''
+    - - 1813.842
+      - 330.119
+      - 0
+      - zone_2
+      - is_cleaning_zone:
+        - 4
+        - true
+    - - 1944.648
+      - 645.399
+      - 0
+      - ''
+    - - 1850.375
+      - 734.322
+      - 0
+      - zone_4
+      - is_cleaning_zone:
+        - 4
+        - true
+    - - 1429.736
+      - 602.524
+      - 0
+      - charger_cleanerBotA_0
+      - is_charger:
+        - 4
+        - true
+        is_holding_point:
+        - 4
+        - true
+        is_parking_spot:
+        - 4
+        - true
+        spawn_robot_name:
+        - 1
+        - cleanerBotA_0
+        spawn_robot_type:
+        - 1
+        - Open-RMF/CleanerBotA
+    - - 1497.26
+      - 642.032
+      - 0
+      - ''
+    - - 1600.885
+      - 393.424
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal1
+    - - 1592.872
+      - 549.156
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal5
+    - - 1680.787
+      - 503.27
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal4
+    - - 1769.472
+      - 552.24
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal3
+    - - 1760.409
+      - 389.744
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal2
+    - - 1527.322
+      - 602.367
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal7
+    - - 1829.239
+      - 603.524
+      - 0
+      - ''
+      - human_goal_set_name:
+        - 1
+        - crowd_goal6
+    - - 1424.711776255815
+      - 304.4255932170545
+      - 0
+      - corner_0
+    - - 1923.9697491317845
+      - 304.4255932170545
+      - 0
+      - corner_1
+    - - 1923.9697491317845
+      - 761.0639830426363
+      - 0
+      - corner_2
+    - - 1424.711776255815
+      - 761.0639830426363
+      - 0
+      - corner_3
+    - - 1583.0130847286835
+      - 487.08094914728724
+      - 0
+      - meas_0
+    - - 1583.0130847286835
+      - 523.6120203333338
+      - 0
+      - meas_1
+    walls:
+    - - 0
+      - 1
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 1
+      - 2
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 2
+      - 3
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 3
+      - 4
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 4
+      - 18
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 17
+      - 16
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 16
+      - 15
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 15
+      - 14
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 14
+      - 13
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 28
+      - 13
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - white_brick
+    - - 25
+      - 22
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 22
+      - 21
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 21
+      - 23
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 23
+      - 24
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 5
+      - 6
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 6
+      - 7
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 7
+      - 8
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 26
+      - 27
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - concrete4
+    - - 22
+      - 20
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 20
+      - 19
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 19
+      - 9
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 10
+      - 11
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 11
+      - 12
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 12
+      - 15
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 66
+      - 10
+      - alpha:
+        - 3
+        - 1
+        texture_name:
+        - 1
+        - beige
+    - - 74
+      - 75
+      - &id001
+        alpha:
+        - 3
+        - 1.0
+        texture_name:
+        - 1
+        - default
+    - - 75
+      - 76
+      - *id001
+    - - 76
+      - 77
+      - *id001
+    - - 77
+      - 74
+      - *id001
+lifts: {}
+name: airport_cropped_world

@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+.vscode/
+.idea/
+
+build/
+install/
+log/
+
+*.swp
+*~
+
+# Acados build & cache
+acados/
+sicnav/acados_cache/
+*.dylib
+*.so
+*.o
+*.a
+*.egg-info/
+tmp_*

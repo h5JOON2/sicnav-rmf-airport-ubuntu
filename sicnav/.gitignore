@@ -1,0 +1,50 @@
+# editors
+.idea/
+.vscode/
+.lprof/
+
+# Python
+*.egg-info/
+.pytest_cache/
+__pycache__
+.cache/
+venv*/
+
+# data
+data/
+*.mp4
+videos/
+temp_files/
+*.pth
+# built library
+build/
+dist/
+
+slurm_files/
+*.slrm
+*.out
+*.log
+
+# jit files for casadi
+*tmp*.c
+*tmp*.o
+*tmp*.so
+*.dylib
+
+# acados cache
+acados_cache/
+
+# Custom results folders
+*results_*/
+
+
+# SB3 Train Logging
+*todo.txt
+*logs/
+*test_logs/
+*vids/
+*il_weights/
+
+*.pdf
+
+.DS_Store

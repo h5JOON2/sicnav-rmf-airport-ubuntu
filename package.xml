@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="3">
+
+  <name>sicnav_airport_bringup</name>
+
+  <version>0.0.1</version>
+
+  <description>
+    Integrated RMF Airport, TurtleBot4 and SICNav simulation bringup
+  </description>
+
+  <maintainer email="user@example.com">
+    qwer1234
+  </maintainer>
+
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>rmf_demos_gz</exec_depend>
+  <exec_depend>turtlebot4_gz_bringup</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>
