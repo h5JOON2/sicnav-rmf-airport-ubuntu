@@ -732,6 +732,44 @@ RGB-D Tracking Human State
 
 ---
 
+## 🚀 Execution Guide (Dual-System Architecture)
+
+본 프로젝트는 **UTM Ubuntu 24.04 VM (Gazebo Harmonic 시뮬레이터)**과 **macOS 호스트 (Apple Silicon MPS JMID Diffusion + Acados MPC 추론)**가 TCP 소켓(`port 9090`)으로 실시간 연동되는 분산 아키텍처로 동작합니다.
+
+```text
+ [macOS Host: AI / MPC 서버]                  [UTM Ubuntu 24.04: Gazebo 클라이언트]
+ ┌───────────────────────────┐                 ┌───────────────────────────────────┐
+ │ sicnav/run_tcp_server.py  │                 │ Gazebo Harmonic (Airport Terminal)│
+ │  ├── JMID Diffusion 예측  │  <── JSON ────  │  ├── Menge Crowd Simulator (/crowd)│
+ │  ├── ORCA CasADi KKT      │  (Robot/Crowd)  │  └── TurtleBot4 (/odom)           │
+ │  └── Acados Bilevel MPC   │                 │                                   │
+ │       ↓                   │  ─── JSON ───>  │  sicnav_gazebo_client.py          │
+ │   [v, ω] 계산 완료        │   (v, omega)    │  └── /cmd_vel (차동 구동 제어)     │
+ └───────────────────────────┘                 └───────────────────────────────────┘
+```
+
+### 1. macOS 호스트에서 SICNav 추론 서버 실행
+
+Mac 터미널에서 conda/python 환경 활성화 후:
+```bash
+cd sicnav
+python3 run_tcp_server.py --host 0.0.0.0 --port 9090
+```
+> `[*] SICNav TCP Server listening on 0.0.0.0:9090...` 메시지와 함께 클라이언트 접속을 대기합니다.
+
+### 2. UTM Ubuntu VM에서 Gazebo 시뮬레이터 & 클라이언트 실행
+
+Ubuntu 터미널에서:
+```bash
+# 1) 공항 시뮬레이션 및 TurtleBot4 실행
+ros2 launch launch/airport_cropped_tb4.launch.py
+
+# 2) 별도 터미널에서 SICNav 연동 클라이언트 실행 (Mac 호스트 IP 지정)
+python3 scripts/sicnav_gazebo_client.py --server_ip 192.168.64.1 --port 9090
+```
+
+---
+
 ## 📌 Status
 
 ```text
@@ -742,14 +780,14 @@ Gazebo / ROS Clock Bridge      ✅
 ROS2 Control                   ✅
 diffdrive_controller           ✅
 TurtleBot4 Teleoperation       ✅
+Integrated Bringup             ✅
+Crowd GT State Extraction      ✅
+JMID Integration               ✅
+SICNav Integration             ✅
+Closed-loop Social Navigation  ✅
 
-Integrated Bringup             🚧
-Crowd GT State Extraction      🚧
-JMID Integration               ⏳
-SICNav Integration             ⏳
 Nav2 Integration               ⏳
 RGB-D Human Tracking           ⏳
-Closed-loop Social Navigation  ⏳
 ```
 
 ---

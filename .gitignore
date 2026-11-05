@@ -1,24 +1,37 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 *.log
 
-.vscode/
-.idea/
+# C/C++ compiled binaries & shared libraries
+*.o
+*.a
+*.so
+*.dylib
 
+# Acados & CasADi runtime JIT generated artifacts
+acados/
+**/acados_cache/
+*tmp*.c
+*tmp*.o
+*tmp*.so
+jit_tmp*
+tmp_*
+temp_files/
+c_generated_code*
+acados_sicnav_mpc*.json
+
+# ROS 2 / Python build directories
 build/
 install/
 log/
+dist/
+*.egg-info/
 
+# IDE & OS files
+.DS_Store
+.vscode/
+.idea/
 *.swp
 *~
-
-# Acados build & cache
-acados/
-sicnav/acados_cache/
-*.dylib
-*.so
-*.o
-*.a
-*.egg-info/
-tmp_*
