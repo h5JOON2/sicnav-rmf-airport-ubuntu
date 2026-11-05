@@ -48,7 +48,8 @@ def export_campc_model(mpc_env):
 def export_campc_ocp(mpc_env, file_run_id=None):
 
 
-    hash = mpc_env.config_hash
+    # Offline and realtime modes have different solver iteration limits.
+    hash = mpc_env.config_hash + ("_realtime" if not mpc_env.isSim else "")
     code_export_dir = 'acados_cache/c_generated_code_{:}'.format(hash)
     json_file = 'acados_cache/acados_sicnav_mpc_{:}.json'.format(hash)
     # code_export_dir = 'c_generated_code_0' if file_run_id is None else 'c_generated_code_{:}'.format(file_run_id)

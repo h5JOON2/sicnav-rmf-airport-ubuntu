@@ -1001,6 +1001,8 @@ class SICNavAcados(Policy):
 
 
     def init_human_prediction(self):
+        if getattr(self, "async_worker", None) is not None:
+            self.async_worker.stop()
         if not self.human_pred_MID_vanil_as_joint and self.human_pred_MID_joint:
             self.hum_traj_forecaster = HumanTrajectoryForecasterSim(env_config=self.env.config, mid_config_file="sicnav_diffusion/JMID/test_time_configs/mid_jp.yaml")
         else:
@@ -1024,7 +1026,7 @@ class SICNavAcados(Policy):
         env.set_human_observability(False)
         tot_time = env.time_limit
         self.time_step = env.time_step
-        self.rate = 1.0 / self.time_step # rate of the mpc solver, i.e. how many times it runs per second this can be different from the env discretization time step when running on a real robot
+        self.rate = getattr(self, "control_hz", 1.0 / self.time_step)  # Actual control rate, independent of the model grid.
 
         _ = env.reset() # to ensure that static obstacles are created as an object.
 
@@ -1084,7 +1086,8 @@ class SICNavAcados(Policy):
             'config' : policy_config,
             'env_config' : env_config,
         }
-        self.mpc_env = MPCEnv(self.time_step, dummy_state, self.num_hums, self.horiz, policy_config, env_config, isSim=True)
+        self.mpc_env = MPCEnv(self.time_step, dummy_state, self.num_hums, self.horiz, policy_config, env_config,
+                              isSim=not getattr(self, "external_clock", False))
 
 
 
@@ -1183,6 +1186,9 @@ class SICNavAcados(Policy):
                 self.all_log_weights_unnormed = []
                 # also redefine the human trajectory forecaster object in case there is some statefulness.
                 self.init_human_prediction()
+
+                if getattr(self, "external_clock", False):
+                    return
 
                 start_time_step = self.env.global_time_step - self.hum_traj_forecaster.num_hist_frames-1
                 end_time_step = self.env.global_time_step-1
@@ -1645,7 +1651,7 @@ class SICNavAcados(Policy):
             state = self.randomize_state_robustness_eval(state)
 
         # initialize casadi options etc. for new scenario case.
-        if not self.mpc_env or self.env.global_time == 0.0:
+        if not self.mpc_env or (self.env.global_time == 0.0 and not getattr(self, "external_clock", False)):
             self.reset_scenario_values()
             # set the goal etc. for the humans s.t. this gt value ends up being correct
 
@@ -1654,7 +1660,17 @@ class SICNavAcados(Policy):
             if self.human_pred_MID:
                 if getattr(self, 'async_worker', None) is not None:
                     self.async_worker.update_and_trigger(state.self_state, state.human_states, self.env.global_time)
-                    top_k_forecasts, top_k_weights = self.async_worker.get_forecasts()
+                    top_k_forecasts, top_k_weights = self.async_worker.get_forecasts(
+                        self.env.global_time, self.time_step, self.horiz)
+                    if top_k_forecasts is None:
+                        # Keep control nonblocking during initial inference.
+                        times = np.arange(self.horiz + 2) * self.time_step
+                        positions = np.array([h.position for h in state.human_states])
+                        velocities = np.array([[h.vx, h.vy] for h in state.human_states])
+                        cv = positions[:, None, :] + velocities[:, None, :] * times[None, :, None]
+                        top_k_forecasts = np.repeat(cv[:, None, :, :], self.mpc_env.num_MID_samples, axis=1)
+                        top_k_weights = np.full((self.num_hums, self.mpc_env.num_MID_samples),
+                                                -np.log(self.mpc_env.num_MID_samples))
                 else:
                     self.hum_traj_forecaster.update_state_hists(state.self_state, state.human_states, self.env.global_time)
                     top_k_forecasts, top_k_weights = self.hum_traj_forecaster.predict_ret_best()

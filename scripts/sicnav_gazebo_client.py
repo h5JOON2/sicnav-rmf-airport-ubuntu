@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
-"""
-SICNav Gazebo Client (Runs in UTM Ubuntu VM).
-
-Connects Gazebo Harmonic + Open-RMF Menge simulation to macOS SICNav TCP Server:
-1. Reads TurtleBot4 pose & velocity from /odom
-2. Reads pedestrian poses from Gazebo /world/airport_cropped_world/pose/info
-3. Sends state JSON to macOS SICNav server (192.168.64.1:9090)
-4. Receives optimal velocity command (v, r) from Acados MPC + JMID
-5. Publishes Twist command to /cmd_vel
+"""Ubuntu Gazebo navigation node: in-process JMID + ORCA + MPC by default.
+The TCP transport remains available only as an explicit compatibility option.
 """
 
 import sys
@@ -26,6 +19,10 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+try:
+    from sicnav_crowd_msgs.msg import CrowdState
+except ImportError:
+    CrowdState = None
 
 # 15 Candidate Airport Destinations (matching behavior_file.xml)
 CANDIDATE_GOALS = [
@@ -74,6 +71,10 @@ def parse_args():
         default=int(os.environ.get("SICNAV_SERVER_PORT", "9090")),
         help="SICNav Server Port (default: 9090 or env $SICNAV_SERVER_PORT)",
     )
+    parser.add_argument("--transport", choices=("local", "tcp"), default="local")
+    parser.add_argument("--sicnav_root", default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sicnav"))
+    parser.add_argument("--control_hz", type=float, default=10.0)
+    parser.add_argument("--num_humans", type=int, default=-1)
     parser.add_argument("--goal_x", type=float, default=148.0, help="Robot Goal X (Airport global frame)")
     parser.add_argument("--goal_y", type=float, default=-41.7, help="Robot Goal Y (Airport global frame)")
     parser.add_argument("--rate", type=float, default=10.0, help="Control loop rate (Hz)")
@@ -83,6 +84,27 @@ def parse_args():
 class SicnavGazeboClient(Node):
     def __init__(self, args):
         super().__init__('sicnav_gazebo_client')
+        from rclpy.parameter import Parameter
+        self.set_parameters([Parameter('use_sim_time', value=True)])
+        self.transport = args.transport
+        self.controller = None
+        if self.transport == 'local':
+            root = os.path.abspath(args.sicnav_root)
+            if not os.path.isfile(os.path.join(root, 'run_tcp_server.py')):
+                raise RuntimeError(f'SICNav sources missing: {root}; set --sicnav_root')
+            sys.path.insert(0, root)
+            # Model configs/checkpoints and Acados generated code use relative paths.
+            os.chdir(root)
+            from run_tcp_server import SICNavController
+            from types import SimpleNamespace
+            import torch
+            self.controller = SICNavController(SimpleNamespace(
+                host=None, port=None, control_hz=args.control_hz,
+                env_config='sicnav_diffusion/configs/env.config',
+                policy_config='sicnav_diffusion/configs/policy.config',
+                num_humans=args.num_humans,
+                device='cuda:0' if torch.cuda.is_available() else 'cpu'))
+            self.controller.start_episode()
         self.server_ip = args.server_ip
         self.port = args.port
         self.goal_x = args.goal_x
@@ -90,7 +112,9 @@ class SicnavGazeboClient(Node):
         self.dt = 1.0 / args.rate
         self.step_idx = 0
 
-        self.get_logger().info(f"[SICNav Client] Target macOS Server: {self.server_ip}:{self.port}")
+        self.get_logger().info(
+            f'[SICNav] Ubuntu local JMID + ORCA + MPC ({args.control_hz} Hz control)'
+            if self.controller is not None else f'[SICNav] TCP target: {self.server_ip}:{self.port}')
         self.get_logger().info(f"[SICNav Client] Robot Goal: ({self.goal_x}, {self.goal_y})")
 
         # State storage
@@ -99,13 +123,15 @@ class SicnavGazeboClient(Node):
         self.robot_theta = 0.0
         self.robot_vx = 0.0
         self.robot_vy = 0.0
-        self.last_odom_time = time.time()
+        self.robot_omega = 0.0
+        self.last_odom_time = None
         self.state_lock = threading.Lock()
 
         # Pedestrian tracking: {name: {'id': int, 'px': float, 'py': float, 'vx': float, 'vy': float, 'last_t': float}}
         self.pedestrians = {}
         self.ped_id_map = {}
         self.next_ped_id = 1
+        self.crowd_received = False
 
         # ROS 2 Subscriptions & Publishers
         qos = QoSProfile(
@@ -115,6 +141,9 @@ class SicnavGazeboClient(Node):
         )
         self.create_subscription(Odometry, '/odom', self.on_odom, qos)
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        if CrowdState is not None:
+            self.create_subscription(CrowdState, '/crowd_sim/states', self.on_crowd_states, 10)
+            self.get_logger().info('[SICNav] Using authoritative Menge states from /crowd_sim/states')
 
         # Gazebo direct pose listener
         if HAS_GZ_TRANSPORT:
@@ -128,7 +157,8 @@ class SicnavGazeboClient(Node):
         # Socket setup
         self.sock = None
         self.buffer = ""
-        self.connect_server()
+        if self.transport == "tcp":
+            self.connect_server()
 
         # Control timer
         self.timer = self.create_timer(self.dt, self.control_step)
@@ -136,11 +166,14 @@ class SicnavGazeboClient(Node):
     def connect_server(self):
         while rclpy.ok():
             try:
+                if self.sock is not None:
+                    self.sock.close()
+                self.buffer = ""
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.sock.settimeout(3.0)
                 self.sock.connect((self.server_ip, self.port))
                 self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                self.get_logger().info(f"[SICNav Client] Successfully connected to macOS SICNav Server at {self.server_ip}:{self.port}!")
+                self.get_logger().info(f"[SICNav Client] Successfully connected to SICNav TCP server at {self.server_ip}:{self.port}!")
                 return
             except Exception as e:
                 self.get_logger().warn(f"[SICNav Client] Waiting for server ({self.server_ip}:{self.port})... Retrying in 2s")
@@ -161,15 +194,34 @@ class SicnavGazeboClient(Node):
             self.robot_theta = float(yaw)
             self.robot_vx = float(lin_v * math.cos(yaw))
             self.robot_vy = float(lin_v * math.sin(yaw))
-            self.last_odom_time = time.time()
+            self.robot_omega = float(msg.twist.twist.angular.z)
+            self.last_odom_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+
+    def on_crowd_states(self, msg):
+        stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        humans = {}
+        for agent in sorted(msg.agents, key=lambda agent: agent.agent_id):
+            if agent.is_external:
+                continue
+            humans[str(agent.agent_id)] = {
+                'id': int(agent.agent_id),
+                'px': float(agent.pose.position.x), 'py': float(agent.pose.position.y),
+                'vx': float(agent.twist.linear.x) if agent.velocity_valid else 0.0,
+                'vy': float(agent.twist.linear.y) if agent.velocity_valid else 0.0,
+                'radius': 0.25, 'last_t': stamp}
+        with self.state_lock:
+            self.crowd_received = True
+            self.pedestrians = humans
 
     def on_gz_pose(self, msg):
-        now = time.time()
+        now = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9
         with self.state_lock:
+            if self.crowd_received:
+                return
             for p in msg.pose:
                 name = p.name
                 # Identify humans (Menge agents or visitor actors)
-                is_human = any(k in name.lower() for k in ['human', 'agent', 'visitor', 'person', 'male', 'female', 'actor'])
+                is_human = any(k in name.lower() for k in ['human', 'agent', 'visitor', 'person', 'male', 'female', 'actor', 'passenger'])
                 if is_human and 'turtlebot' not in name.lower():
                     if name not in self.ped_id_map:
                         self.ped_id_map[name] = self.next_ped_id
@@ -180,7 +232,11 @@ class SicnavGazeboClient(Node):
 
                     if name in self.pedestrians:
                         prev = self.pedestrians[name]
-                        dt_p = max(0.01, now - prev['last_t'])
+                        if now <= prev['last_t']:
+                            if now < prev['last_t']:
+                                self.pedestrians.clear()
+                            continue
+                        dt_p = now - prev['last_t']
                         vx = (x - prev['px']) / dt_p
                         vy = (y - prev['py']) / dt_p
                         # Filter out teleport noise
@@ -201,17 +257,24 @@ class SicnavGazeboClient(Node):
 
     def control_step(self):
         with self.state_lock:
-            rx = self.robot_px
-            ry = self.robot_py
+            if self.last_odom_time is None:
+                return
+            sim_t = self.get_clock().now().nanoseconds * 1e-9
+            odom_age = sim_t - self.last_odom_time
+            if abs(odom_age) > 0.5:
+                self.cmd_pub.publish(Twist())
+                return
+            rx = self.robot_px + self.robot_vx * odom_age
+            ry = self.robot_py + self.robot_vy * odom_age
             r_vx = self.robot_vx
             r_vy = self.robot_vy
-            r_th = self.robot_theta
+            r_th = self.robot_theta + self.robot_omega * odom_age
 
             # Active humans (seen in last 1.0s)
-            now = time.time()
+            now = sim_t
             active_humans = [
                 h for h in self.pedestrians.values()
-                if (now - h['last_t']) < 1.0
+                if abs(now - h['last_t']) < 1.0
             ]
 
         # Check goal distance
@@ -232,11 +295,12 @@ class SicnavGazeboClient(Node):
                 )
 
         # Prepare packet
+        # Project pedestrian observations to the same odometry stamp as the robot.
         humans_payload = [
             {
                 "id": h['id'],
-                "px": round(h['px'], 3),
-                "py": round(h['py'], 3),
+                "px": round(h['px'] + h['vx'] * (sim_t - h['last_t']), 3),
+                "py": round(h['py'] + h['vy'] * (sim_t - h['last_t']), 3),
                 "vx": round(h['vx'], 3),
                 "vy": round(h['vy'], 3),
                 "radius": h['radius']
@@ -244,17 +308,17 @@ class SicnavGazeboClient(Node):
             for h in active_humans[:5]  # limit to 5 closest if many
         ]
 
-        sim_t = self.step_idx * self.dt
         self.step_idx += 1
 
         payload = {
-            "timestamp": round(sim_t, 3),
+            "timestamp": sim_t,
             "robot": {
                 "px": round(rx, 3),
                 "py": round(ry, 3),
                 "vx": round(r_vx, 3),
                 "vy": round(r_vy, 3),
                 "theta": round(r_th, 3),
+                "omega": self.robot_omega,
                 "gx": self.goal_x,
                 "gy": self.goal_y,
                 "radius": 0.25,
@@ -265,20 +329,23 @@ class SicnavGazeboClient(Node):
 
         # Send JSON line
         try:
-            req_data = (json.dumps(payload) + "\n").encode("utf-8")
-            self.sock.sendall(req_data)
+            if self.controller is not None:
+                resp = self.controller.step(payload)
+            else:
+                req_data = (json.dumps(payload) + "\n").encode("utf-8")
+                self.sock.sendall(req_data)
 
-            # Receive response line
-            while "\n" not in self.buffer:
-                chunk = self.sock.recv(4096).decode("utf-8")
-                if not chunk:
-                    self.get_logger().warn("[SICNav Client] Connection closed by server. Reconnecting...")
-                    self.connect_server()
-                    return
-                self.buffer += chunk
+                # Receive response line
+                while "\n" not in self.buffer:
+                    chunk = self.sock.recv(4096).decode("utf-8")
+                    if not chunk:
+                        self.get_logger().warn("[SICNav Client] Connection closed by server. Reconnecting...")
+                        self.connect_server()
+                        return
+                    self.buffer += chunk
 
-            line, self.buffer = self.buffer.split("\n", 1)
-            resp = json.loads(line)
+                line, self.buffer = self.buffer.split("\n", 1)
+                resp = json.loads(line)
 
             action = resp.get("action", {})
             v = float(action.get("v", 0.0))
@@ -289,11 +356,14 @@ class SicnavGazeboClient(Node):
             twist = Twist()
             twist.linear.x = v
             twist.angular.z = r
-            self.cmd_pub.publish(twist)
+            if resp.get("control_updated", True):
+                self.cmd_pub.publish(twist)
 
             self.get_logger().info(
-                f"[Step] Robot=({rx:.2f}, {ry:.2f}) Hums={len(humans_payload)} "
-                f"==> Cmd: v={v:.2f} m/s, w={r:.2f} rad/s ({compute_time:.1f} ms)"
+                f"[Step t={sim_t:.3f}] Robot=({rx:.2f}, {ry:.2f}) Hums={len(humans_payload)} "
+                f"==> Cmd: v={v:.2f} m/s, w={r:.2f} rad/s ({compute_time:.1f} ms) "
+                f"limited={resp.get('command_limited', False)} updated={resp.get('control_updated')} JMID={resp.get('jmid_runs', 0)} "
+                f"age={resp.get('jmid_age_s')} infer_ms={resp.get('jmid_inference_ms')}"
             )
 
         except (socket.timeout, ConnectionResetError, BrokenPipeError):
@@ -301,6 +371,7 @@ class SicnavGazeboClient(Node):
             self.cmd_pub.publish(Twist())
             self.connect_server()
         except Exception as e:
+            self.cmd_pub.publish(Twist())
             self.get_logger().error(f"[SICNav Client] Error in control loop: {e}")
 
 
@@ -314,6 +385,10 @@ def main():
         pass
     finally:
         node.cmd_pub.publish(Twist())
+        if node.controller is not None:
+            node.controller.close()
+        if node.sock is not None:
+            node.sock.close()
         node.destroy_node()
         rclpy.shutdown()
 

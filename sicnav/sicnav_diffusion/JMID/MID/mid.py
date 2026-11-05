@@ -1229,7 +1229,7 @@ class MID:
         self.registrar = ModelRegistrar(self.model_dir, "cuda" if torch.cuda.is_available() else "cpu")
         if self.sicnav_inference:
             sys.path.insert(0, osp.join(os.getcwd(), "sicnav_diffusion", "JMID", "MID"))
-            self.checkpoint = torch.load(self.config.model_path, map_location=self.device)
+            self.checkpoint = torch.load(self.config.model_path, map_location=self.device, weights_only=False)
             self.registrar.load_models(self.checkpoint["encoder"])
         else:
             if self.config.eval_mode:

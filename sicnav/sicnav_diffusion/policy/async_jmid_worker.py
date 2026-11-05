@@ -1,125 +1,121 @@
-import time
+"""Nonblocking, latest-only JMID inference on the observation time axis."""
 import copy
-import threading
 import logging
+import threading
+import time
+import math
 import numpy as np
 import torch
 
 
 class AsyncJMIDWorker:
-    """
-    Asynchronous Background Worker for JMID Diffusion Trajectory Forecasting.
-    Decouples the slower JMID neural network (~180ms) from the high-rate 10 Hz Acados MPC loop (~20ms),
-    ensuring every control action is output within 0.1s (100ms) without lag.
-    Runs JMID forecasting asynchronously in the background at target rate (default 2.0 Hz = every 0.5s).
-    """
-
     def __init__(self, forecaster, target_hz=2.0):
+        if target_hz <= 0:
+            raise ValueError('JMID frequency must be positive')
         self.forecaster = forecaster
-        self.target_interval = 1.0 / max(target_hz, 0.1)  # e.g. 0.5s for 2.0 Hz
         self.target_hz = target_hz
-        self.lock = threading.Lock()
-
-        # Cached predictions
-        self.latest_top_k_forecasts = None
-        self.latest_top_k_weights = None
-        self.last_predict_wall_time = 0.0
-        self.total_jmid_runs = 0
-
-        # Worker control
-        self.pending_snapshot = None
-        self.is_busy = False
+        self.target_interval = 1.0 / target_hz
+        self.lock = threading.Condition()
         self.running = True
-
-        self.thread = threading.Thread(
-            target=self._worker_loop,
-            name="AsyncJMIDWorkerThread",
-            daemon=True
-        )
+        self.generation = 0
+        self.pending_snapshot = None
+        self.result = None
+        self.next_due = None
+        self.last_timestamp = None
+        self.total_jmid_runs = 0
+        self.latest_inference_ms = None
+        self.last_used_timestamp = None
+        self.thread = threading.Thread(target=self._worker_loop, daemon=True,
+                                       name='AsyncJMIDWorkerThread')
         self.thread.start()
-        logging.info(f"[AsyncJMIDWorker] Started background worker at {self.target_hz:.1f} Hz (interval: {self.target_interval:.2f}s)")
 
     def update_and_trigger(self, robot_state, human_states, time_stamp):
-        """
-        Called on every 10 Hz step. Fast update (~0.1ms).
-        Triggers background inference if target interval has passed and worker is idle.
-        """
-        self.forecaster.update_state_hists(robot_state, human_states, time_stamp)
-
-        now = time.time()
-        if (now - self.last_predict_wall_time >= self.target_interval) and not self.is_busy:
-            with self.forecaster.prev_states_lock:
-                snapshot = (
-                    copy.deepcopy(self.forecaster.prev_states),
-                    copy.deepcopy(self.forecaster.prev_robot_states)
-                )
-            with self.lock:
-                if not self.is_busy:
-                    self.pending_snapshot = snapshot
-                    self.is_busy = True
+        with self.lock:
+            if self.last_timestamp is not None and time_stamp < self.last_timestamp:
+                self.reset_cache()
+            if time_stamp == self.last_timestamp:
+                return
+            self.last_timestamp = time_stamp
+            self.forecaster.update_state_hists(robot_state, human_states, time_stamp)
+            if self.next_due is None or time_stamp + 1e-9 >= self.next_due:
+                with self.forecaster.prev_states_lock:
+                    snapshot = (copy.deepcopy(self.forecaster.prev_states),
+                                copy.deepcopy(self.forecaster.prev_robot_states))
+                # Replace queued work instead of building a stale inference backlog.
+                self.pending_snapshot = (snapshot, time_stamp, self.generation)
+                self.next_due = (math.floor((time_stamp + 1e-9) / self.target_interval) + 1) * self.target_interval
+                self.lock.notify()
 
     def _worker_loop(self):
-        while self.running:
-            snapshot = None
+        while True:
             with self.lock:
-                if self.pending_snapshot is not None:
-                    snapshot = self.pending_snapshot
-                    self.pending_snapshot = None
-
-            if snapshot is not None:
-                prev_states, prev_robot_states = snapshot
-                t0 = time.time()
-                try:
-                    with torch.no_grad():
-                        forecasts, weights = self.forecaster.predict_ret_best(
-                            prev_states=prev_states,
-                            prev_robot_states=prev_robot_states
-                        )
-                    dur_ms = (time.time() - t0) * 1000.0
-                    with self.lock:
-                        self.latest_top_k_forecasts = forecasts
-                        self.latest_top_k_weights = weights
-                        self.last_predict_wall_time = time.time()
+                self.lock.wait_for(lambda: not self.running or self.pending_snapshot is not None)
+                if not self.running:
+                    return
+                snapshot, stamp, generation = self.pending_snapshot
+                self.pending_snapshot = None
+            try:
+                started = time.monotonic()
+                with torch.no_grad():
+                    forecasts, weights = self.forecaster.predict_ret_best(
+                        prev_states=snapshot[0], prev_robot_states=snapshot[1])
+                with self.lock:
+                    if generation == self.generation:
+                        self.result = (np.array(forecasts, copy=True),
+                                       np.array(weights, copy=True), stamp)
                         self.total_jmid_runs += 1
-                    # logging.debug(f"[AsyncJMIDWorker] Background JMID #{self.total_jmid_runs} finished in {dur_ms:.1f} ms")
-                except Exception as e:
-                    logging.error(f"[AsyncJMIDWorker] Error in background prediction: {e}")
-                finally:
-                    with self.lock:
-                        self.is_busy = False
-            else:
-                time.sleep(0.005)
+                        self.latest_inference_ms = (time.monotonic() - started) * 1000.0
+            except Exception:
+                logging.exception('[AsyncJMIDWorker] Background prediction failed')
 
-    def get_forecasts(self):
-        """
-        Returns (latest_top_k_forecasts, latest_top_k_weights).
-        If no forecast is cached yet (initial step 0), runs synchronous warm-up once.
-        """
+    def get_forecasts(self, time_stamp=None, time_step=None, horizon=None):
+        """Read an atomic result; interpolate its t=0 onto the current MPC grid."""
         with self.lock:
-            if self.latest_top_k_forecasts is not None:
-                return self.latest_top_k_forecasts, self.latest_top_k_weights
+            result = self.result
+            self.last_used_timestamp = None if result is None else result[2]
+        if result is None:
+            return None, None
+        forecasts, weights, stamp = result
+        if time_stamp is None:
+            return forecasts, weights
+        dt = self.forecaster.time_step
+        query = max(0.0, time_stamp - stamp) + np.arange(horizon + 2) * time_step
+        source = np.arange(forecasts.shape[2]) * dt
+        aligned = np.empty((*forecasts.shape[:2], len(query), 2))
+        for h in range(forecasts.shape[0]):
+            for s in range(forecasts.shape[1]):
+                for d in range(2):
+                    values = forecasts[h, s, :, d]
+                    aligned[h, s, :, d] = np.interp(query, source, values)
+                    # Beyond the learned horizon, continue the terminal velocity.
+                    if len(source) > 1:
+                        aligned[h, s, :, d] += np.maximum(query - source[-1], 0) * (values[-1] - values[-2]) / dt
+        return aligned, weights
 
-        # Step 0 initial synchronous warm-up
-        logging.info("[AsyncJMIDWorker] Running initial synchronous JMID warm-up...")
-        t0 = time.time()
-        with torch.no_grad():
-            forecasts, weights = self.forecaster.predict_ret_best()
-        dur_ms = (time.time() - t0) * 1000.0
+    def get_status(self, time_stamp):
         with self.lock:
-            self.latest_top_k_forecasts = forecasts
-            self.latest_top_k_weights = weights
-            self.last_predict_wall_time = time.time()
-            self.total_jmid_runs += 1
-        logging.info(f"[AsyncJMIDWorker] Initial warm-up completed in {dur_ms:.1f} ms")
-        return forecasts, weights
+            stamp = self.last_used_timestamp
+            return {'jmid_runs': self.total_jmid_runs,
+                    'jmid_source_timestamp': stamp,
+                    'jmid_latest_timestamp': None if self.result is None else self.result[2],
+                    'jmid_age_s': None if stamp is None else max(0.0, time_stamp - stamp),
+                    'jmid_inference_ms': self.latest_inference_ms}
 
     def reset_cache(self):
         with self.lock:
-            self.latest_top_k_forecasts = None
-            self.latest_top_k_weights = None
-            self.last_predict_wall_time = 0.0
+            self.generation += 1  # Discard in-flight results from the old episode.
+            self.result = None
+            self.latest_inference_ms = None
+            self.last_used_timestamp = None
             self.pending_snapshot = None
-            self.is_busy = False
+            self.next_due = None
+            self.last_timestamp = None
+            with self.forecaster.prev_states_lock:
+                self.forecaster.prev_states = [[] for _ in self.forecaster.prev_states]
+                self.forecaster.prev_robot_states = []
 
     def stop(self):
-        self.running = False
+        with self.lock:
+            self.running = False
+            self.lock.notify_all()
+        self.thread.join(timeout=2.0)

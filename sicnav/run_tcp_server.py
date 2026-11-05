@@ -17,14 +17,16 @@ import numpy as np
 import torch
 import gym
 import resource
+import math
 
 def get_mem_mb():
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024.0 * 1024.0)
 
-from crowd_sim_plus.envs.crowd_sim_plus import *
+from crowd_sim_plus.envs.crowd_sim_plus import CrowdSimPlus
 from crowd_sim_plus.envs.utils.robot_plus import Robot
 from crowd_sim_plus.envs.utils.state_plus import FullState, FullyObservableJointState
 from sicnav_diffusion.policy.policy_factory import policy_factory
+from sicnav_diffusion.policy.command_limits import CommandLimiter
 
 
 def parse_args():
@@ -34,12 +36,16 @@ def parse_args():
     parser.add_argument("--env_config", type=str, default="sicnav_diffusion/configs/env.config")
     parser.add_argument("--policy_config", type=str, default="sicnav_diffusion/configs/policy.config")
     parser.add_argument("--num_humans", type=int, default=-1, help="Number of humans (overrides config)")
+    parser.add_argument("--control_hz", type=float, default=10.0, help="ORCA + MPC output rate in simulation time")
     parser.add_argument("--device", type=str, default="cuda:0" if torch.cuda.is_available() else "cpu")
     return parser.parse_args()
 
 
-class SICNavServer:
+class SICNavController:
     def __init__(self, args):
+        if args.control_hz <= 0:
+            raise ValueError("control_hz must be positive")
+        self.control_interval = 1.0 / args.control_hz
         self.args = args
         self.host = args.host
         self.port = args.port
@@ -58,10 +64,17 @@ class SICNavServer:
         self.policy_config = configparser.RawConfigParser()
         self.policy_config.read(args.policy_config)
 
+        self.command_limiter = CommandLimiter(
+            max_forward=self.policy_config.getfloat('mpc_env', 'max_speed'),
+            max_reverse=self.policy_config.getfloat('mpc_env', 'max_rev_speed'),
+            max_angular=math.radians(self.policy_config.getfloat('mpc_env', 'max_rot_degrees')),
+            acceleration=self.policy_config.getfloat('mpc_env', 'max_l_acc'),
+            deceleration=-self.policy_config.getfloat('mpc_env', 'max_l_dcc'))
+
         # 2. Initialize Gym Environment and Policy
         logging.info("Setting up simulation environment and Acados solver...")
-        env_order = gym.make("CrowdSimPlus-v0")
-        self.env = env_order.unwrapped
+        # This environment supplies custom state/action objects rather than Gym spaces.
+        self.env = CrowdSimPlus()
         self.env.configure(self.env_config)
         self.env.test_sim = self.env_config.get("sim", "test_sim")
 
@@ -75,6 +88,8 @@ class SICNavServer:
 
         self.policy.set_phase("test")
         self.policy.set_device(self.device)
+        self.policy.external_clock = True
+        self.policy.control_hz = args.control_hz
         self.policy.set_env(self.env)
 
         self.time_step = self.env.time_step
@@ -167,6 +182,83 @@ class SICNavServer:
         )
         return joint_state
 
+    def start_episode(self):
+        self.policy.external_clock = True
+        self.policy.reset_scenario_values()
+        self.next_control = None
+        self.last_timestamp = None
+        self.action_timestamp = None
+        self.action = None
+        self.output_action = None
+        self.raw_action = None
+        self.command_limited = False
+
+    def step(self, request):
+        """In-process observation input, shared by ROS and optional TCP transport."""
+        if not hasattr(self, 'next_control'):
+            self.start_episode()
+        start = time.monotonic()
+        state = self.parse_input_payload(request)
+        ts = float(request['timestamp'])
+        if not math.isfinite(ts):
+            raise ValueError('timestamp must be finite simulation seconds')
+        if self.last_timestamp is not None and ts < self.last_timestamp:
+            self.start_episode()
+        self.env.global_time = ts
+        self.last_timestamp = ts
+        worker = getattr(self.policy, 'async_worker', None)
+        if worker is not None:
+            worker.update_and_trigger(state.self_state, state.human_states, ts)
+        updated = self.next_control is None or ts + 1e-9 >= self.next_control
+        if updated:
+            if self.control_interval > self.time_step + 1e-9:
+                self.policy.x_prev = None
+                self.policy.u_prev = None
+            with torch.no_grad():
+                self.action = self.policy.predict(state)
+            raw_v = float(self.action.v)
+            raw_omega = float(self.action.r / self.time_step)
+            robot = request.get('robot', {})
+            theta = float(robot.get('theta', 0.0))
+            measured_v = (float(robot.get('vx', 0.0)) * math.cos(theta) +
+                          float(robot.get('vy', 0.0)) * math.sin(theta))
+            measured_omega = float(robot.get('omega', 0.0))
+            # A delayed solve must not authorize a large jump in the next command.
+            dt = self.control_interval if self.action_timestamp is None else min(
+                self.control_interval, max(0.0, ts - self.action_timestamp))
+            v, omega, self.command_limited = self.command_limiter.limit(
+                raw_v, raw_omega, measured_v, measured_omega, dt)
+            self.raw_action = {'v': raw_v, 'r': raw_omega}
+            self.output_action = {'v': v, 'r': omega}
+            self.policy.prev_lvel = v
+            self.policy.prev_avel = omega
+            if self.command_limited:
+                # The previous MPC trajectory assumed a different applied action.
+                self.policy.x_prev = None
+                self.policy.u_prev = None
+            self.action_timestamp = ts
+            # Use the same simulation epoch as the 2Hz prediction scheduler.
+            self.next_control = (math.floor((ts + 1e-9) / self.control_interval) + 1) * self.control_interval
+
+        return {
+            **(worker.get_status(ts) if worker is not None and hasattr(worker, 'get_status') else {}),
+            'status': 'success',
+            'action': dict(self.output_action),
+            'raw_action': dict(self.raw_action),
+            'command_limited': self.command_limited,
+            'timestamp': ts,
+            'action_timestamp': self.action_timestamp,
+            'control_updated': updated,
+            'compute_time_ms': round((time.monotonic() - start) * 1000., 2),
+        }
+
+    def close(self):
+        worker = getattr(self.policy, 'async_worker', None)
+        if worker is not None:
+            worker.stop()
+
+
+class SICNavServer(SICNavController):
     def run(self):
         server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -180,15 +272,9 @@ class SICNavServer:
             logging.info(f"[+] Client connected from {client_addr}")
 
             buffer = ""
-            global_step = 0
             self.env.global_time = 0.0
 
-            # Reset history on new client connection to prevent timestamp jumps
-            if hasattr(self.policy, 'hum_traj_forecaster'):
-                self.policy.hum_traj_forecaster.prev_states = [[] for _ in range(self.num_humans)]
-                self.policy.hum_traj_forecaster.prev_robot_states = []
-            if hasattr(self.policy, 'async_worker') and self.policy.async_worker is not None:
-                self.policy.async_worker.reset_cache()
+            self.start_episode()
 
             try:
                 while True:
@@ -204,39 +290,9 @@ class SICNavServer:
                         if not line:
                             continue
 
-                        start_t = time.time()
                         try:
                             req_json = json.loads(line)
-                            joint_state = self.parse_input_payload(req_json)
-
-                            # Advance simulation clock for history tracking (safe relative time)
-                            ts = req_json.get("timestamp", global_step * self.time_step)
-                            if ts > 10000.0:
-                                ts = global_step * self.time_step
-                            self.env.global_time = float(ts)
-                            global_step += 1
-
-                            # Step 1 -> 2 -> 3: JMID -> ORCA -> MPC with no_grad to prevent autograd graph leak
-                            with torch.no_grad():
-                                action = self.policy.predict(joint_state)
-
-                            if global_step % 20 == 0:
-                                if torch.cuda.is_available():
-                                    torch.cuda.empty_cache()
-                                elif hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
-                                    torch.mps.empty_cache()
-
-                            elapsed_ms = (time.time() - start_t) * 1000.0
-                            logging.info(f"[Step {global_step}] Done in {elapsed_ms:.1f} ms | RAM: {get_mem_mb():.1f} MB")
-                            resp = {
-                                "status": "success",
-                                "action": {
-                                    "v": float(action.v),
-                                    "r": float(action.r / self.time_step) if self.time_step > 0 else float(action.r)
-                                },
-                                "timestamp": self.env.global_time,
-                                "compute_time_ms": round(elapsed_ms, 2)
-                            }
+                            resp = self.step(req_json)
                         except Exception as e:
                             logging.error(f"Error during predict: {e}", exc_info=True)
                             resp = {
@@ -252,6 +308,9 @@ class SICNavServer:
                 logging.warning("[-] Client connection lost unexpectedly.")
             finally:
                 client_sock.close()
+                worker = getattr(self.policy, 'async_worker', None)
+                if worker is not None:
+                    worker.stop()
 
 
 def main():

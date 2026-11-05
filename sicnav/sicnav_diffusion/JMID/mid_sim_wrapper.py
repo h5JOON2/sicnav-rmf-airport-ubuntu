@@ -9,6 +9,8 @@ import pandas as pd
 import torch
 
 import configparser
+import os
+import logging
 from threading import Lock
 
 def get_most_likely_samples(forecasts, mid_model, num_ret_samples):
@@ -199,11 +201,11 @@ class ForecasterSimSuper():
         with self.prev_states_lock:
             for i in range(self.num_hums):
                 self.prev_states[i].append([*human_states[i].position, time_stamp])
-                if len(self.prev_states[i]) > self.num_hist_frames:
+                while len(self.prev_states[i]) > 2 and self.prev_states[i][1][2] < time_stamp - self.num_hist_frames * self.time_step:
                     self.prev_states[i].pop(0)
 
             self.prev_robot_states.append([*robot_state.position, time_stamp])
-            if len(self.prev_robot_states) > self.num_hist_frames:
+            while len(self.prev_robot_states) > 2 and self.prev_robot_states[1][2] < time_stamp - self.num_hist_frames * self.time_step:
                 self.prev_robot_states.pop(0)
 
 
@@ -241,6 +243,14 @@ class HumanTrajectoryForecasterSim(ForecasterSimSuper):
         assert attention_radius[(self.mid_env.NodeType.PEDESTRIAN, self.mid_env.NodeType.PEDESTRIAN)] == attention_radius[(self.mid_env.NodeType.PEDESTRIAN, self.mid_env.NodeType.JRDB_ROBOT)], "Please make sure that the attention radius is the same for pedestrians and robots. Otherwise the logic in convert_mid_to_state_env will break."
         self.mid_env.attention_radius = attention_radius
         self.mid_model = MID(config=mid_config_file, init_env=self.mid_env, num_history=self.num_hist_frames, prediction_horizon=self.predict_horizon, sicnav_inference=True)
+        sample_override = os.environ.get('SICNAV_JMID_SAMPLES')
+        if sample_override is not None:
+            samples = int(sample_override)
+            if samples < self.num_ret_samples:
+                raise ValueError('SICNAV_JMID_SAMPLES must be at least num_samples in env.config')
+            self.mid_model.num_samples = samples
+            self.mid_model.config.num_samples = samples
+            logging.info('JMID generates %s candidates and retains %s', samples, self.num_ret_samples)
         self.model = self.mid_model
 
 
@@ -295,13 +305,10 @@ class HumanTrajectoryForecasterSim(ForecasterSimSuper):
         """
         subsampled_df = scene_df
 
-        # Convert time in seconds to datetime for resampling
-        # Pandas datetime interprets floats as nanoseconds and only keeps track of whole nanoseconds
-        # Multiply by 100 so the first two decimal points of our float will be kept
-        subsampled_df["datetime"] = pd.to_datetime(subsampled_df["time"]*100)
-
-        # Start from the end and keep the last row that falls in bins of int(self.time_step*100)
-        subsampled_df = subsampled_df.resample(f"{int(round(self.time_step*100))}ns", on="datetime", origin="end").last()
+        # Keep actual seconds and subsecond precision, including large clock epochs.
+        subsampled_df["datetime"] = pd.to_datetime(subsampled_df["time"], unit="s")
+        subsampled_df = subsampled_df.resample(
+            pd.to_timedelta(self.time_step, unit="s"), on="datetime", origin="end").last()
         subsampled_df = subsampled_df.interpolate(method="linear", axis=0)
         return subsampled_df
 

@@ -29,6 +29,9 @@ def generate_launch_description():
     z = LaunchConfiguration('z')
     yaw = LaunchConfiguration('yaw')
     namespace = LaunchConfiguration('namespace')
+    transport = LaunchConfiguration('transport')
+    sicnav_python = LaunchConfiguration('sicnav_python')
+    sicnav_root = LaunchConfiguration('sicnav_root')
     server_ip = LaunchConfiguration('server_ip')
     server_port = LaunchConfiguration('server_port')
 
@@ -41,7 +44,7 @@ def generate_launch_description():
     declare_use_tcp_bridge = DeclareLaunchArgument(
         'use_tcp_bridge',
         default_value='true',
-        description='Launch TCP bridge node to communicate with macOS JMID/SICNav'
+        description='Launch navigation node (Ubuntu in-process inference by default)'
     )
 
     declare_use_local_frame = DeclareLaunchArgument(
@@ -143,7 +146,7 @@ def generate_launch_description():
     # Global Frame - Headless Mode
     gz_sim_global_headless = ExecuteProcess(
         condition=IfCondition(headless),
-        cmd=['gz', 'sim', '-s', '-r', world_global],
+        cmd=['gz', 'sim', '-s', '-r', '-v', '3', world_global],
         output='screen'
     )
 
@@ -196,16 +199,23 @@ def generate_launch_description():
     tcp_bridge_script = os.path.join(
         pkg_root,
         'scripts',
-        'sicnav_tcp_bridge.py'
+        'sicnav_gazebo_client.py'
     )
 
     tcp_bridge_node = ExecuteProcess(
         condition=IfCondition(use_tcp_bridge),
-        cmd=['python3', tcp_bridge_script, '--server_ip', server_ip, '--port', server_port],
+        cmd=[sicnav_python, tcp_bridge_script, '--transport', transport,
+             '--sicnav_root', sicnav_root, '--server_ip', server_ip, '--port', server_port],
         output='screen'
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument('transport', default_value='local',
+                              description='local: Ubuntu in-process inference; tcp: optional remote server'),
+        DeclareLaunchArgument('sicnav_python', default_value='python3',
+                              description='Python with ROS2, PyTorch and Acados installed'),
+        DeclareLaunchArgument('sicnav_root', default_value=os.path.join(pkg_root, 'sicnav'),
+                              description='Writable SICNav source directory containing run_tcp_server.py'),
         declare_headless,
         declare_use_tcp_bridge,
         declare_use_local_frame,
