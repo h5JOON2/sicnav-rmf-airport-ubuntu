@@ -20,11 +20,31 @@ import threading
 import argparse
 from collections import defaultdict
 
+import random
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+
+# 15 Candidate Airport Destinations (matching behavior_file.xml)
+CANDIDATE_GOALS = [
+    (131.47, -32.31),  # Concourse NW
+    (131.14, -44.42),  # Concourse SW
+    (138.03, -41.33),  # Central Hallway
+    (144.96, -44.65),  # Concourse SE
+    (144.57, -32.01),  # Concourse NE
+    (131.18, -37.88),  # West Walkway
+    (135.03, -42.89),  # South-Central Corridor
+    (141.05, -42.99),  # Central Crossing
+    (144.89, -37.84),  # East Walkway
+    (138.02, -32.16),  # North Corridor
+    (147.95, -47.62),  # Gate A
+    (127.92, -47.44),  # Gate B
+    (130.81, -45.10),  # Gate C Lounge
+    (150.22, -49.56),  # East Terminal Entry
+    (125.43, -49.47),  # West Terminal Entry
+]
 
 # Optional Gazebo Transport for high-precision model poses
 try:
@@ -186,10 +206,19 @@ class SicnavGazeboClient(Node):
 
         # Check goal distance
         dist_to_goal = math.hypot(self.goal_x - rx, self.goal_y - ry)
-        if dist_to_goal < 0.6:
-            self.get_logger().info(f"[SICNav Client] Goal reached! ({rx:.2f}, {ry:.2f})")
-            self.cmd_pub.publish(Twist())
-            return
+        if dist_to_goal < 0.8:
+            # Reached current goal: randomly choose next destination among candidates (> 4m away)
+            valid_candidates = [
+                (gx, gy) for (gx, gy) in CANDIDATE_GOALS
+                if math.hypot(gx - rx, gy - ry) > 4.0
+            ]
+            if valid_candidates:
+                self.goal_x, self.goal_y = random.choice(valid_candidates)
+                self.get_logger().info(
+                    f"\n=======================================================\n"
+                    f"[SICNav Client] >>> GOAL REACHED! Next Random Target: ({self.goal_x:.2f}, {self.goal_y:.2f}) <<<\n"
+                    f"=======================================================\n"
+                )
 
         # Prepare packet
         humans_payload = [
