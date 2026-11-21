@@ -1,0 +1,3 @@
+# Base SICNav environment supplies torch 2.5.1, NumPy and SciPy.
+# OpenCV is imported by upstream DR-SPAAM utility code; no camera/YOLO is used.
+opencv-python==4.11.0.86

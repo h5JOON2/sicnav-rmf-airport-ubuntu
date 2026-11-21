@@ -1,0 +1,7 @@
+DR-SPAAM integration uses VisualComputingInstitute/2D_lidar_person_detection
+https://github.com/VisualComputingInstitute/2D_lidar_person_detection
+Pinned revision: d12e90225d52ba6c85d20061f1e7286d6a64aade
+The inference adapter follows the upstream detector and preprocessing.
+See DR_SPAAM_LICENSE for its GPL-3.0 license. The setup script applies
+NumPy integer, PyTorch checkpoint-loading, and MPS device compatibility patches.
+Upstream source and model weights are downloaded explicitly during setup.
