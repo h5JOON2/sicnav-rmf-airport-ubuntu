@@ -930,16 +930,6 @@
       <name>chair_white_2</name>
       <pose>134.5 -46.0 0 0 0 3.14159</pose>
     </include>
-    <include>
-      <uri>model://Standing person</uri>
-      <name>passenger_standing_1</name>
-      <pose>131.5 -32.3 0 0 0 -1.57</pose>
-    </include>
-    <include>
-      <uri>model://Standing person</uri>
-      <name>passenger_standing_2</name>
-      <pose>144.6 -32.0 0 0 0 2.3</pose>
-    </include>
     <model name="turtlebot4">
       <pose>136.5 -41.7 0.05 0 0 1.5708</pose>
       <link name="base_link">

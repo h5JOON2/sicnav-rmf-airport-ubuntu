@@ -5,13 +5,18 @@ from scipy.optimize import linear_sum_assignment
 
 class PersonSlots:
     """Small fixed slot set matches the legacy solver's index-based histories."""
-    def __init__(self, count=3, expiry=1.):
+    def __init__(self, count=3, expiry=1.,retain_missing=True):
         self.count, self.expiry = count, expiry
+        self.retain_missing=retain_missing
         self.slots = [None]*count
         self.next_id = 1
         self.stamp = None
 
     def update(self, stamp, points):
+        # Repeated simulator timestamps must not allocate a second identity for
+        # the same observation (matching below requires strictly positive dt).
+        if self.stamp is not None and stamp == self.stamp:
+            return [dict(v) if v else None for v in self.slots]
         if self.stamp is not None and stamp < self.stamp:
             self.slots = [None]*self.count
         self.stamp = stamp
@@ -35,6 +40,8 @@ class PersonSlots:
                 self.slots[i]={**old,'px':points[c][0],'py':points[c][1],
                                'vx':.5*old['vx']+.5*vx,'vy':.5*old['vy']+.5*vy,'stamp':stamp}
                 used.add(c)
+        if not self.retain_missing:
+            self.slots=[v if v and v['stamp']==stamp else None for v in self.slots]
         for c,p in enumerate(points):
             if c in used:continue
             empty=next((i for i,v in enumerate(self.slots) if v is None),None)
@@ -48,4 +55,7 @@ def observation_compatible(observation, ids):
     if observation is None or observation.get('capacity_exceeded', True):
         return False
     slots = observation.get('slots', [])
+    if observation.get('variable_humans'):
+        visible=[value for value in slots if value is not None and value['stamp']==observation['stamp']]
+        return tuple(value['id'] for value in visible)==tuple(ids)
     return all(value is not None for value in slots) and tuple(value['id'] for value in slots) == tuple(ids)

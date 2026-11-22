@@ -1,0 +1,352 @@
+{
+  "jmid_deadline_ms": 150,
+  "horizon": 4,
+  "source": "GT3, Gazebo DRIVE, 90s",
+  "build_reused": true,
+  "status_counts": {
+    "deadline": 4,
+    "inflight": 3,
+    "ready": 300
+  },
+  "all_mpc": {
+    "n": 307,
+    "rpc_ms": {
+      "n": 307,
+      "mean": 120.0927957166813,
+      "p50": 119.75800000072923,
+      "p95": 160.37630809769325,
+      "max": 201.69350000287523
+    },
+    "over250": 0
+  },
+  "repeat_mpc": {
+    "n": 306,
+    "rpc_ms": {
+      "n": 306,
+      "mean": 119.89553701640664,
+      "p50": 119.75424999945972,
+      "p95": 160.0040312478086,
+      "max": 201.69350000287523
+    },
+    "over250": 0
+  },
+  "previous_h4_repeat": {
+    "n": 305,
+    "rpc_ms": {
+      "n": 305,
+      "mean": 121.33663404593626,
+      "p50": 119.27875000037602,
+      "p95": 149.13621639934718,
+      "max": 417.2610839996196
+    },
+    "over250": 1
+  },
+  "by_status": {
+    "deadline": {
+      "rpc_ms": {
+        "n": 4,
+        "mean": 186.78611450104654,
+        "p50": 187.27735399988887,
+        "p95": 200.55458750230173,
+        "max": 201.69350000287523
+      },
+      "wait_ms": {
+        "n": 4,
+        "mean": 153.2067604994154,
+        "p50": 153.03875000063272,
+        "p95": 154.94253569759167,
+        "max": 155.0632919970667
+      },
+      "mpc_ms": {
+        "n": 4,
+        "mean": 18.803875249432167,
+        "p50": 19.63131299817178,
+        "p95": 35.08143760082021,
+        "max": 35.08525000142981
+      }
+    },
+    "inflight": {
+      "rpc_ms": {
+        "n": 3,
+        "mean": 24.93722233217947,
+        "p50": 19.143124998663552,
+        "p95": 40.87118779934826,
+        "max": 43.28541699942434
+      },
+      "wait_ms": {
+        "n": 3,
+        "mean": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "max": 0.0
+      },
+      "mpc_ms": {
+        "n": 3,
+        "mean": 13.477708333084593,
+        "p50": 3.8903749991732184,
+        "p95": 32.45742529943527,
+        "max": 35.63154199946439
+      }
+    },
+    "ready": {
+      "rpc_ms": {
+        "n": 300,
+        "mean": 120.15510720006812,
+        "p50": 119.75424999945972,
+        "p95": 157.3371339523874,
+        "max": 200.8502499993483
+      },
+      "wait_ms": {
+        "n": 300,
+        "mean": 80.1445080434011,
+        "p50": 73.87581200055138,
+        "p95": 110.94172680186603,
+        "max": 130.76762499986216
+      },
+      "mpc_ms": {
+        "n": 300,
+        "mean": 26.653030673126825,
+        "p50": 33.36970849886711,
+        "p95": 43.73404795060196,
+        "max": 66.47208300273633
+      }
+    }
+  },
+  "transitions": [
+    {
+      "sim_s": 3.068,
+      "state_seq": 38,
+      "jmid_call": 1,
+      "jmid_request_stamp": 3.068,
+      "status": "deadline",
+      "prediction_source": "orca_deadline",
+      "jmid_wait_ms": 154.25825000056648,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": null,
+      "discarded_late_stamp": null,
+      "rpc_ms": 180.45395800072583,
+      "compute_ms": 179.37862500184565,
+      "mpc_ms": 4.202791998977773,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 0,
+      "qp_history": "[0.0]",
+      "source": "recovery_motion",
+      "v": 0.31,
+      "omega": -0.4645297615387829
+    },
+    {
+      "sim_s": 3.328,
+      "state_seq": 43,
+      "jmid_call": 1,
+      "jmid_request_stamp": 3.068,
+      "status": "inflight",
+      "prediction_source": "orca_inflight",
+      "jmid_wait_ms": 0.0,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": null,
+      "discarded_late_stamp": null,
+      "rpc_ms": 19.143124998663552,
+      "compute_ms": 18.259125001350185,
+      "mpc_ms": 0.9112080006161705,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 0,
+      "qp_history": "[0.0]",
+      "source": "recovery_motion",
+      "v": 0.31,
+      "omega": -0.4645297640064514
+    },
+    {
+      "sim_s": 3.588,
+      "state_seq": 48,
+      "jmid_call": 2,
+      "jmid_request_stamp": 3.588,
+      "status": "deadline",
+      "prediction_source": "orca_deadline",
+      "jmid_wait_ms": 151.68624999932945,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": 452.5259170004574,
+      "discarded_late_stamp": 3.068,
+      "rpc_ms": 194.1007499990519,
+      "compute_ms": 193.2104999978037,
+      "mpc_ms": 35.08525000142981,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 4,
+      "qp_history": "[0.0, 5.0, 5.0, 5.0, 5.0]",
+      "source": "updated_feasible",
+      "v": 0.28999369670262815,
+      "omega": -0.3124627451856805
+    },
+    {
+      "sim_s": 3.848,
+      "state_seq": 53,
+      "jmid_call": 2,
+      "jmid_request_stamp": 3.588,
+      "status": "inflight",
+      "prediction_source": "orca_inflight",
+      "jmid_wait_ms": 0.0,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": null,
+      "discarded_late_stamp": null,
+      "rpc_ms": 43.28541699942434,
+      "compute_ms": 42.37916700003552,
+      "mpc_ms": 35.63154199946439,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 4,
+      "qp_history": "[0.0, 5.0, 5.0, 5.0, 5.0]",
+      "source": "updated_feasible",
+      "v": 0.2989087506957948,
+      "omega": -0.25280178999345826
+    },
+    {
+      "sim_s": 4.108,
+      "state_seq": 59,
+      "jmid_call": 3,
+      "jmid_request_stamp": 4.108,
+      "status": "ready",
+      "prediction_source": "jmid",
+      "jmid_wait_ms": 79.15154099828214,
+      "completed_jmid_ms": 78.9317500020843,
+      "discarded_late_jmid_ms": 419.05783399852226,
+      "discarded_late_stamp": 3.588,
+      "rpc_ms": 99.06745899934322,
+      "compute_ms": 98.29991699734819,
+      "mpc_ms": 4.1108340010396205,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "baseline",
+      "sqp": 0,
+      "qp_history": "[0.0]",
+      "source": "recovery_motion",
+      "v": 0.31,
+      "omega": -0.2528010476044804
+    },
+    {
+      "sim_s": 37.128,
+      "state_seq": 715,
+      "jmid_call": 120,
+      "jmid_request_stamp": 37.128,
+      "status": "deadline",
+      "prediction_source": "orca_deadline",
+      "jmid_wait_ms": 151.81925000069896,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": null,
+      "discarded_late_stamp": null,
+      "rpc_ms": 170.8962500015332,
+      "compute_ms": 169.8439169995254,
+      "mpc_ms": 0.8676249999552965,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 0,
+      "qp_history": "[0.0]",
+      "source": "recovery_motion",
+      "v": 0.0,
+      "omega": -1.0199334647144842
+    },
+    {
+      "sim_s": 37.388,
+      "state_seq": 720,
+      "jmid_call": 120,
+      "jmid_request_stamp": 37.128,
+      "status": "inflight",
+      "prediction_source": "orca_inflight",
+      "jmid_wait_ms": 0.0,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": null,
+      "discarded_late_stamp": null,
+      "rpc_ms": 12.383124998450512,
+      "compute_ms": 11.575291002372978,
+      "mpc_ms": 3.8903749991732184,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 1,
+      "qp_history": "[0.0, 1.0]",
+      "source": "initial_feasible",
+      "v": 0.0,
+      "omega": -1.8999999999999997
+    },
+    {
+      "sim_s": 37.752,
+      "state_seq": 728,
+      "jmid_call": 121,
+      "jmid_request_stamp": 37.752,
+      "status": "ready",
+      "prediction_source": "jmid",
+      "jmid_wait_ms": 123.25274999966496,
+      "completed_jmid_ms": 122.58345900045242,
+      "discarded_late_jmid_ms": 312.3184169999149,
+      "discarded_late_stamp": 37.128,
+      "rpc_ms": 171.7294169975503,
+      "compute_ms": 170.53491600017878,
+      "mpc_ms": 33.41645799810067,
+      "baseline_probe_ms": 4.9855840006785,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 4,
+      "qp_history": "[0.0, 5.0, 5.0, 5.0, 5.0]",
+      "source": "updated_feasible",
+      "v": 0.020392766651590163,
+      "omega": -0.859098657977982
+    },
+    {
+      "sim_s": 39.208,
+      "state_seq": 757,
+      "jmid_call": 126,
+      "jmid_request_stamp": 39.208,
+      "status": "deadline",
+      "prediction_source": "orca_deadline",
+      "jmid_wait_ms": 155.0632919970667,
+      "completed_jmid_ms": null,
+      "discarded_late_jmid_ms": null,
+      "discarded_late_stamp": null,
+      "rpc_ms": 201.69350000287523,
+      "compute_ms": 200.4938329992001,
+      "mpc_ms": 35.059833997365786,
+      "baseline_probe_ms": 0.0,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 4,
+      "qp_history": "[0.0, 5.0, 5.0, 5.0, 5.0]",
+      "source": "updated_feasible",
+      "v": 0.013072471563868896,
+      "omega": -0.8393897944152282
+    },
+    {
+      "sim_s": 39.468,
+      "state_seq": 762,
+      "jmid_call": 127,
+      "jmid_request_stamp": 39.468,
+      "status": "ready",
+      "prediction_source": "jmid",
+      "jmid_wait_ms": 107.1707500013872,
+      "completed_jmid_ms": 106.78795800049556,
+      "discarded_late_jmid_ms": 166.1474159991485,
+      "discarded_late_stamp": 39.208,
+      "rpc_ms": 154.45412500048405,
+      "compute_ms": 153.61895900059608,
+      "mpc_ms": 33.42312500171829,
+      "baseline_probe_ms": 4.587207997246878,
+      "actual_model": "orca_observed_reinit",
+      "sqp": 4,
+      "qp_history": "[0.0, 5.0, 5.0, 5.0, 5.0]",
+      "source": "updated_feasible",
+      "v": 0.009385107091154336,
+      "omega": -0.8177481283547583
+    }
+  ],
+  "first_entry_15cm_sim_s": 6.5,
+  "minimum_goal_distance_m": 0.004630896036267262,
+  "controller_errors": 0,
+  "command_rejection_reasons": {},
+  "halt_reasons": {
+    "lidar_disconnected": 4
+  },
+  "scan_odom_abs_ms": {
+    "n": 887,
+    "mean": 14.119503945885063,
+    "p50": 12.000000000000455,
+    "p95": 31.999999999996476,
+    "max": 32.00000000001069
+  },
+  "limitations": "150ms is a soft wait budget, not a GPU cancellation or a guaranteed overall 250ms bound. Existing proximity-triggered ORCA selection still applies even when JMID is ready. Sequential live samples are not identical-input replay. Before six history frames the existing local recovery planner remains in use."
+}

@@ -4,8 +4,12 @@ models/*.pth
 logs/
 samples/
 runtime-controller/
-controller/
+controller/runtime*/
+controller/jmid_mps_overlay/
 archive/
 __pycache__/
-*.pyc
+*.py[cod]
 *.dylib
+*.so
+*.npz
+validation/capture*/

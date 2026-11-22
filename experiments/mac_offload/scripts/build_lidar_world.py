@@ -6,6 +6,12 @@ def build(base,output):
  text=Path(base).read_text()
  text=re.sub(r'<!--\s*Disabled gpu_lidar.*?(<sensor name="rplidar".*?</sensor>)\s*-->',r'\1',text,flags=re.S)
  tree=ET.fromstring(text)
+ # The crowd scene already spawns three pedestrians. Do not add the two
+ # static passenger props on top of that three-person experiment.
+ world=tree.find('world')
+ for include in list(world.findall('include')):
+  if include.findtext('name') in ('passenger_standing_1','passenger_standing_2'):
+   world.remove(include)
  robot=tree.find("world/model[@name='turtlebot4']")
  if robot is None:raise ValueError('Expected project TurtleBot4 model')
  for link in robot.findall('link'):
