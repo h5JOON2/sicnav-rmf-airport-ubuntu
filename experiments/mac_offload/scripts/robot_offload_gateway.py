@@ -26,6 +26,7 @@ class Gateway(Node):
         super().__init__('robot_offload_gateway')
         self.set_parameters([Parameter('use_sim_time',value=True)])
         self.args=args;self.stop=threading.Event();self.lock=threading.RLock()
+        self.state_changed=threading.Condition(self.lock);self.state_version=0
         self.session=str(uuid.uuid4());self.epoch=0;self.state_seq=0;self.scan_seq=0
         self.state=None;self.odom_wall=None;self.frames=LatestFrame();self.last_scan_stamp=None
         self.guard=CommandGuard(self.session,max_age=args.command_max_age)
@@ -68,6 +69,7 @@ class Gateway(Node):
                                  'vy':msg.twist.twist.linear.x*math.sin(theta),'omega':msg.twist.twist.angular.z,
                                  'gx':self.args.goal_x,'gy':self.args.goal_y,'radius':.25,'v_pref':.31}}
             self.odom_wall=time.monotonic()
+            self.state_version+=1;self.state_changed.notify_all()
 
     def on_scan(self,scan,odom):
         if scan.header.frame_id!=self.args.scan_frame:
@@ -130,7 +132,10 @@ class Gateway(Node):
             except (OSError,EOFError,ValueError) as exc:
                 if rclpy.ok() and not self.stop.is_set():
                     self.get_logger().warning(f'Channel {offset}: {exc}',throttle_duration_sec=5.)
-            if offset in (1,2):self.guard.invalidate()
+            if offset in (1,2):
+                with self.lock:
+                    self.guard.invalidate();self.last_packet=None
+                    self.publish_command('disconnect')
             self.stop.wait(.5)
 
     def sensors(self,sock):
@@ -142,12 +147,17 @@ class Gateway(Node):
             self.record('scan_sent',scan_seq=meta['scan_seq'],stamp=meta['stamp'],frames_received=self.frames.received,frames_replaced=self.frames.replaced)
 
     def states(self,sock):
-        while not self.stop.wait(.05):
-            with self.lock:
+        version=-1
+        while not self.stop.is_set():
+            with self.state_changed:
+                self.state_changed.wait_for(lambda: self.stop.is_set() or self.state_version!=version,timeout=.5)
+                if self.stop.is_set():return
+                if self.state_version==version:continue
+                version=self.state_version
                 if self.state is None or time.monotonic()-self.odom_wall>.5:continue
                 self.state_seq+=1
                 packet={**self.state,'state_seq':self.state_seq}
-            self.guard.note_state(packet['state_seq'],packet['epoch'],packet['stamp'],time.monotonic())
+                self.guard.note_state(packet['state_seq'],packet['epoch'],packet['stamp'],time.monotonic())
             send_packet(sock,packet)
             self.record('state_sent',state_seq=packet['state_seq'],stamp=packet['stamp'])
 
@@ -159,25 +169,39 @@ class Gateway(Node):
                 raise
             if packet.get('kind')=='heartbeat':continue
             if packet.get('kind')=='halt':
-                self.guard.invalidate();self.last_packet=None;self.record('halt_received',reason=packet.get('reason'));continue
-            accepted=self.guard.accept(packet,time.monotonic())
-            if accepted:self.last_packet=packet
-            self.record('command_received',accepted=accepted,rejection_reason=self.guard.last_rejection,state_seq=packet.get('state_seq'),scan_seq=packet.get('scan_seq'),action_stamp=packet.get('action_timestamp'),packet=packet)
+                with self.lock:
+                    self.guard.invalidate();self.last_packet=None
+                    self.record('halt_received',reason=packet.get('reason'))
+                    self.publish_command('halt')
+                continue
+            with self.lock:
+                accepted=self.guard.accept(packet,time.monotonic())
+                if accepted:self.last_packet=packet
+                self.record('command_received',accepted=accepted,rejection_reason=self.guard.last_rejection,state_seq=packet.get('state_seq'),scan_seq=packet.get('scan_seq'),action_stamp=packet.get('action_timestamp'),packet=packet)
+                if accepted:self.publish_command('received')
             status=String();status.data=json.dumps({'event':'command','accepted':accepted,'packet':packet},allow_nan=False)
             if rclpy.ok() and not self.stop.is_set():self.status.publish(status)
 
+    def publish_command(self,trigger):
+        # Serialize immediate delivery and watchdog output: an old watchdog
+        # snapshot must never overwrite a just-received command or halt.
+        with self.lock:
+            if self.stop.is_set() or not rclpy.ok():return
+            now=time.monotonic();sim=self.get_clock().now().nanoseconds*1e-9
+            fresh=self.odom_wall is not None and now-self.odom_wall<.5
+            v,w=self.guard.command(now,sim) if fresh else (0.,0.)
+            msg=Twist();msg.linear.x=v;msg.angular.z=w;self.cmd.publish(msg)
+            packet=self.last_packet or {}
+            with self.guard.lock:current=self.guard.current
+            valid=current is not None and now<=current[2] and 0<=sim-current[3]<=self.args.command_max_age and fresh
+            self.record('candidate_published',v=v,omega=w,command_valid=valid,state_seq=packet.get('state_seq'),scan_seq=packet.get('scan_seq'),action_stamp=packet.get('action_timestamp'),drive=self.args.drive,trigger=trigger)
+
     def watchdog(self):
-        now=time.monotonic();sim=self.get_clock().now().nanoseconds*1e-9
-        with self.lock:fresh=self.odom_wall is not None and now-self.odom_wall<.5
-        v,w=self.guard.command(now,sim) if fresh else (0.,0.)
-        msg=Twist();msg.linear.x=v;msg.angular.z=w;self.cmd.publish(msg)
-        packet=self.last_packet or {}
-        with self.guard.lock:current=self.guard.current
-        valid=current is not None and now<=current[2] and 0<=sim-current[3]<=self.args.command_max_age and fresh
-        self.record('candidate_published',v=v,omega=w,command_valid=valid,state_seq=packet.get('state_seq'),scan_seq=packet.get('scan_seq'),action_stamp=packet.get('action_timestamp'),drive=self.args.drive)
+        self.publish_command('watchdog')
 
     def destroy_node(self):
         self.stop.set();self.frames.close();self.guard.invalidate()
+        with self.state_changed:self.state_changed.notify_all()
         if rclpy.ok():self.cmd.publish(Twist())
         with self.lock:
             for sock in self.sockets:

@@ -1,0 +1,110 @@
+{
+  "scope": "Two sequential 60-wall-second simulator GT shadow captures, three moving people, stationary robot; no driving commands applied.",
+  "comparison_limit": "Input trajectories, random samples, startup discovery time and machine load were not matched. MPC feasibility changes are not a causal algorithm comparison.",
+  "algorithm_unchanged": "JMID model, MPC/H4/SQP4/QP5, 0.25s minimum request interval, command validity/limits and 50ms watchdog retained.",
+  "latency_definition": "Ubuntu observation callback to first valid Ubuntu candidate publication, measured using Ubuntu monotonic timestamps; not physical sensor acquisition latency.",
+  "initial_connection_notes": "A sensor-channel startup timeout/reconnect and repeated halt packets during discovery occurred in the final capture. Shutdown channel-close logs were retained. No command rejection or invalid nonzero candidate was recorded.",
+  "before": {
+    "controller_responses": 210,
+    "fresh_accepted_actions": 203,
+    "end_to_end_wall_ms": {
+      "n": 203,
+      "mean": 221.6814261280422,
+      "p50": 241.42685500009975,
+      "p95": 290.56364969947026,
+      "max": 387.7858470004867
+    },
+    "mac_controller_rpc_ms": {
+      "n": 210,
+      "mean": 116.20710315238242,
+      "p50": 118.9623335012584,
+      "p95": 164.32525229683958,
+      "max": 215.36395799193997
+    },
+    "new_action_sim_interval_s": {
+      "n": 202,
+      "mean": 0.29346534653465345,
+      "p50": 0.2600000000000051,
+      "p95": 0.3120000000000118,
+      "max": 0.6240000000000094
+    },
+    "new_action_hz_sim": 3.407557354925776,
+    "stages_mean_ms": {
+      "observation_to_used_state": 53.49535591620834,
+      "outside_rpc_after_state": 25.00524519218922,
+      "receive_to_publish": 26.455188142812975
+    },
+    "command_rejections": 0,
+    "invalid_candidate_nonzero": 0,
+    "mpc_feasible_responses": 153,
+    "output_sources": {
+      "observed_people_warmup_local_plan": 5,
+      "updated_feasible": 131,
+      "recovery_motion": 47,
+      "emergency_stop": 5,
+      "initial_feasible": 22
+    },
+    "jmid_deadline_status_counts": {
+      "deadline": 3,
+      "inflight": 3,
+      "ready": 199
+    },
+    "halt_reasons": {
+      "lidar_disconnected": 1
+    }
+  },
+  "after": {
+    "controller_responses": 217,
+    "fresh_accepted_actions": 217,
+    "end_to_end_wall_ms": {
+      "n": 217,
+      "mean": 164.79174495850918,
+      "p50": 165.09099999984755,
+      "p95": 228.62823999985267,
+      "max": 365.4144169995561
+    },
+    "mac_controller_rpc_ms": {
+      "n": 217,
+      "mean": 114.91036075651527,
+      "p50": 117.2190840006806,
+      "p95": 145.8055164082907,
+      "max": 197.90370800183155
+    },
+    "new_action_sim_interval_s": {
+      "n": 216,
+      "mean": 0.26,
+      "p50": 0.259999999999998,
+      "p95": 0.2600000000000051,
+      "max": 0.2600000000000051
+    },
+    "new_action_hz_sim": 3.846153846153846,
+    "stages_mean_ms": {
+      "observation_to_used_state": 48.26983765437337,
+      "outside_rpc_after_state": 1.3934805614394359,
+      "receive_to_publish": 0.21806598618111042
+    },
+    "command_rejections": 0,
+    "invalid_candidate_nonzero": 0,
+    "mpc_feasible_responses": 176,
+    "output_sources": {
+      "observed_people_warmup_local_plan": 5,
+      "emergency_stop": 6,
+      "recovery_motion": 30,
+      "updated_feasible": 155,
+      "initial_feasible": 21
+    },
+    "jmid_deadline_status_counts": {
+      "deadline": 2,
+      "inflight": 3,
+      "ready": 207
+    },
+    "halt_reasons": {
+      "lidar_disconnected": 15
+    }
+  },
+  "unit_tests": {
+    "integration": 49,
+    "controller": 27,
+    "total": 76
+  }
+}

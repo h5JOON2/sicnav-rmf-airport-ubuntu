@@ -32,7 +32,15 @@ def main():
         raise RuntimeError('MPS unavailable; choose --device cpu explicitly')
     model=DrSpaamDetector(args.detector_source,args.model,args.device,args.confidence,args.stride) if args.perception_source=='lidar' else None
     lock=threading.RLock();loglock=threading.Lock();stop=threading.Event();frames=LatestFrame()
-    shared={'state':None,'observation':None,'command':None,'epoch_key':None,'sensor_generation':0}
+    shared={'state':None,'observation':None,'command':None,'epoch_key':None,'sensor_generation':0,'input_version':0,'command_version':0}
+    inputs_changed=threading.Condition(lock);commands_changed=threading.Condition(lock)
+    def set_command(command):
+        with commands_changed:
+            shared['command']=command;shared['command_version']+=1
+            commands_changed.notify_all()
+    def input_changed():
+        # Called while holding the shared lock; no wake-up can be lost.
+        shared['input_version']+=1;inputs_changed.notify_all()
     args.log.parent.mkdir(parents=True,exist_ok=True)
     log=args.log.open('a',buffering=1)
     def record(kind,**values):
@@ -52,9 +60,9 @@ def main():
             if offset==0:
                 with lock:
                     shared['sensor_generation']+=1
-                    shared['observation']=None;shared['command']={'kind':'halt','reason':'lidar_disconnected'}
+                    shared['observation']=None;set_command({'kind':'halt','reason':'lidar_disconnected'});input_changed()
             if offset==1:
-                with lock:shared['state']=None;shared['command']={'kind':'halt','reason':'state_disconnected'}
+                with lock:shared['state']=None;set_command({'kind':'halt','reason':'state_disconnected'});input_changed()
         server.close()
     def sensor_channel(c):
         while not stop.is_set():
@@ -70,17 +78,21 @@ def main():
             key=(header['session'],header['epoch'])
             with lock:
                 if key!=shared['epoch_key']:
-                    shared['observation']=None;shared['command']=None;shared['epoch_key']=key
-                shared['state']=(header,time.monotonic())
+                    shared['observation']=None;set_command(None);shared['epoch_key']=key
+                shared['state']=(header,time.monotonic());input_changed()
     def command_channel(c):
-        last=None;last_sent=0.
-        while not stop.wait(.02):
-            with lock:command=shared['command']
-            if command is not None and (command!=last or time.monotonic()-last_sent>.2):
-                send_packet(c,command);last=command;last_sent=time.monotonic()
+        version=-1;last_sent=time.monotonic()
+        while not stop.is_set():
+            with commands_changed:
+                commands_changed.wait_for(
+                    lambda: stop.is_set() or shared['command_version']!=version,
+                    timeout=max(0.,.2-(time.monotonic()-last_sent)))
+                if stop.is_set():break
+                command=shared['command'];version=shared['command_version']
+            send_packet(c,command if command is not None else {'kind':'heartbeat'})
+            last_sent=time.monotonic()
+            if command is not None:
                 record('command_sent',session=command.get('session'),epoch=command.get('epoch'),state_seq=command.get('state_seq'),scan_seq=command.get('scan_seq'),command_kind=command.get('kind','action'))
-            elif command is None and time.monotonic()-last_sent>.2:
-                send_packet(c,{'kind':'heartbeat'});last_sent=time.monotonic()
     def perception():
         tracker=PersonSlots(args.humans,retain_missing=False);key=None
         while not stop.is_set():
@@ -121,21 +133,28 @@ def main():
                                  'process_start_wall':t,'received_wall':received,'frames_received':frames.received,'frames_replaced':frames.replaced}
                 with lock:
                     if source_key!=shared['epoch_key'] or stream_generation!=shared['sensor_generation']:continue
-                    shared['observation']=(observation,time.monotonic())
+                    shared['observation']=(observation,time.monotonic());input_changed()
                 record('perception',**observation)
             except Exception as exc:record('perception_error',error=str(exc))
     def planner():
-        connection=None;reader=None;slot_key=None;last_seq=-1;last_request_stamp=None
-        while not stop.wait(.02):
-            with lock:state=shared['state'];observation=shared['observation']
+        connection=None;reader=None;slot_key=None;last_seq=-1;last_request_stamp=None;version=-1
+        while not stop.is_set():
+            with inputs_changed:
+                inputs_changed.wait_for(lambda: stop.is_set() or shared['input_version']!=version,timeout=.1)
+                if stop.is_set():break
+                version=shared['input_version'];state=shared['state'];observation=shared['observation']
             if not state or not observation:continue
             state,sr=state;observation,orr=observation
             now=time.monotonic();age=state['stamp']-observation['stamp']
-            if now-sr>.5 or now-orr>1.5 or not 0<=age<=1.:
-                with lock:shared['command']=None
+            if now-sr>.5 or now-orr>1.5 or age>1.:
+                set_command(None)
                 continue
+            # Synchronized observations can arrive just before the newer robot
+            # state on its separate channel. Wait for that state without erasing
+            # a fresh computed command that the sender has not delivered yet.
+            if age<0:continue
             if observation['capacity_exceeded']:
-                with lock:shared['command']={'kind':'halt','reason':'over_capacity_perception'}
+                set_command({'kind':'halt','reason':'over_capacity_perception'})
                 continue
             if state['state_seq']==last_seq:continue
             if last_request_stamp is not None and 0<=state['stamp']-last_request_stamp<args.control_interval:continue
@@ -162,7 +181,7 @@ def main():
                 response=json.loads(raw);last_seq=state['state_seq']
                 record('controller',session=state['session'],epoch=state['epoch'],state_seq=last_seq,scan_seq=observation['scan_seq'],stamp=state['stamp'],scan_stamp=observation['stamp'],slot_ids=ids,rpc_wall_s=time.monotonic()-t,response=response)
                 if response.get('status')!='success':
-                    with lock:shared['command']={'kind':'halt','reason':'controller_error'}
+                    set_command({'kind':'halt','reason':'controller_error'})
                     continue
                 if response.get('control_updated',True):
                     packet={**response,'action_timestamp':response.get('action_timestamp',response['timestamp']),
@@ -173,12 +192,12 @@ def main():
                         latest_obs=None if latest is None else latest[0]
                         compatible=observation_compatible(latest_obs,ids)
                         if (state['session'],state['epoch'])==shared['epoch_key'] and compatible:
-                            shared['command']=packet
+                            set_command(packet)
             except Exception as exc:
                 record('controller_error',error=str(exc))
                 if connection:connection.close()
                 connection=None;reader=None
-                with lock:shared['command']=None
+                set_command(None)
                 stop.wait(.5)
         if connection:connection.close()
     threads=[threading.Thread(target=listener,args=(i,f),daemon=True) for i,f in enumerate([sensor_channel,state_channel,command_channel])]
@@ -190,6 +209,8 @@ def main():
     except KeyboardInterrupt:pass
     finally:
         stop.set();frames.close()
+        with inputs_changed:inputs_changed.notify_all()
+        with commands_changed:commands_changed.notify_all()
         for t in threads:t.join(timeout=3.)
         # Threads may still be finishing an external RPC; log remains open until process exit.
 

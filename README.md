@@ -16,6 +16,8 @@ Ubuntu 전용 JMID/MPC 실행 코드와 중복된 구형 TCP 실험 구현은 �
 
 기존 Mac 통신 구현의 H4(4 × 0.25초), SQP4/QP5, 속도 제한과 대체 제어 로직을 유지합니다. 이전에 공유한 `tcp-4hz` 파일 묶음으로 되돌린 것이 아니라, 이 저장소에 이미 포함된 최신 `mac_offload/controller`를 유지한 정리입니다.
 
+관측·상태·계산 완료를 이벤트로 전달하고, Ubuntu는 검증한 명령을 수신 즉시 발행합니다. 별도의 50ms watchdog은 만료·연결 끊김 시 정지 기능을 유지합니다. 4Hz는 최소 요청 간격에 따른 목표이며, 시뮬레이터의 odometry 갱신 간격과 계산 지연에 따라 실제 주기는 달라집니다.
+
 ## 사전 준비
 
 Ubuntu에는 기존 RMF 군중 플러그인, `ros_gz_bridge`, NumPy, ROS 메시지 및 `message_filters`가 필요합니다. GT 모드는 `sicnav_crowd_msgs`와 `/crowd_sim/states` publisher도 필요합니다. ROS/RMF를 새로 설치하는 자동 설치기는 포함하지 않습니다.

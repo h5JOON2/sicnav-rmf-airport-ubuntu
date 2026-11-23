@@ -10,6 +10,7 @@ ROS2 observations → Mac pedestrian perception → JMID on MPS / native MPC on 
 - Capacity3, actual observed counts0–3; no dummy people. Positive counts have separate preloaded native workers. Zero observations and the initial six-frame JMID-history warmup use the bounded local recovery planner, explicitly reporting `mpc_feasible=false`.
 - TurtleBot4 safe-mode linear limit±0.31m/s; angular limit±1.9rad/s. Candidate tolerance can still produce slight overshoot: the gateway rejects commands beyond the limit, retains the previous valid command until its original deadline, then outputs zero. It does not clamp commands.
 - The world contains3 moving pedestrians and no static person models. The actual number detected by LiDAR can be smaller.
+- Transport wakes on new odometry, completed perception, and computed commands rather than polling every20/50ms. Ubuntu publishes a validated received command immediately; the independent50ms watchdog still republishes the guarded output or zero on expiry. Publication and invalidation share a lock so an older watchdog snapshot cannot overwrite a new command or halt. The0.25s minimum between MPC requests, command limits, freshness/session checks, and JMID/MPC algorithms are unchanged.
 
 ## Mac setup
 
