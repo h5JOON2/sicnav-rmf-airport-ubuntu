@@ -1,0 +1,225 @@
+{
+  "clock_policy": "ROS simulation stamps share one /clock; elapsed latencies use same-host monotonic only. Unix clocks are descriptive, not used for latency.",
+  "perception_source": "Simulator GT",
+  "mac_events": {
+    "channel_error": 4,
+    "command_sent": 332,
+    "scan_received": 887,
+    "perception": 887,
+    "controller_request": 312,
+    "controller": 312
+  },
+  "gateway_events": {
+    "halt_received": 4,
+    "candidate_published": 1782,
+    "state_sent": 1771,
+    "gt_callback": 887,
+    "scan_sent": 887,
+    "command_received": 325
+  },
+  "frames": 887,
+  "complete_slot_frames": 887,
+  "duplicate_scan_callback_timestamps": 0,
+  "duplicate_perception_timestamps": 0,
+  "scan_time_backsteps_within_epoch": 0,
+  "perception_time_backsteps_within_epoch": 0,
+  "controller_output_sources": {
+    "observed_people_warmup_local_plan": 5,
+    "recovery_motion": 56,
+    "updated_feasible": 202,
+    "initial_feasible": 45,
+    "emergency_stop": 4
+  },
+  "controller_observed_count_histogram": {
+    "3": 312
+  },
+  "mpc_feasible_responses": 247,
+  "native_mpc_including_deadline_responses": 307,
+  "native_mpc_including_deadline_rpc_ms": {
+    "n": 307,
+    "mean": 120.0927957166813,
+    "p50": 119.75800000072923,
+    "p95": 160.37630809769325,
+    "max": 201.69350000287523
+  },
+  "jmid_deadline_status_counts": {
+    "deadline": 4,
+    "inflight": 3,
+    "ready": 300
+  },
+  "native_jmid_mpc_responses": 300,
+  "native_jmid_mpc_rpc_ms": {
+    "n": 300,
+    "mean": 120.15510720006812,
+    "p50": 119.75424999945972,
+    "p95": 157.3371339523874,
+    "max": 200.8502499993483
+  },
+  "local_plan_responses": 5,
+  "warmup_responses": 0,
+  "detections_histogram": {
+    "3": 887
+  },
+  "scan_odom_abs_ms": {
+    "n": 887,
+    "mean": 14.119503945885063,
+    "p50": 12.000000000000455,
+    "p95": 31.999999999996476,
+    "max": 32.00000000001069
+  },
+  "scan_odom_within_35ms": true,
+  "scan_sim_interval_s": {
+    "n": 886,
+    "mean": 0.1,
+    "p50": 0.10000000000000142,
+    "p95": 0.10000000000000853,
+    "max": 0.10000000000000853
+  },
+  "scan_callback_wall_interval_s": {
+    "n": 886,
+    "mean": 0.10000347610383835,
+    "p50": 0.10053494549902098,
+    "p95": 0.10483635000036884,
+    "max": 0.13291863500126055
+  },
+  "inference_ms": {
+    "n": 887,
+    "mean": 0.022046916555479933,
+    "p50": 0.02029200186370872,
+    "p95": 0.030295500255306244,
+    "max": 0.1940000001923181
+  },
+  "mac_queue_ms": {
+    "n": 887,
+    "mean": 0.027560466689358465,
+    "p50": 0.025249999453080818,
+    "p95": 0.041229298585676574,
+    "max": 0.10966599802486598
+  },
+  "controller_rpc_ms": {
+    "n": 312,
+    "mean": 118.37058210581884,
+    "p50": 119.59072900026513,
+    "p95": 160.32066234783997,
+    "max": 201.69350000287523
+  },
+  "controller_rpc_over_250ms": 0,
+  "computed_controller_rpc_ms": {
+    "n": 312,
+    "mean": 118.37058210581884,
+    "p50": 119.59072900026513,
+    "p95": 160.32066234783997,
+    "max": 201.69350000287523
+  },
+  "controller_request_sim_interval_s": {
+    "n": 311,
+    "mean": 0.2839099678456592,
+    "p50": 0.2600000000000051,
+    "p95": 0.31200000000000827,
+    "max": 0.4680000000000035
+  },
+  "fresh_accepted_actions": 307,
+  "fresh_action_wall_interval_s": {
+    "n": 306,
+    "mean": 0.28913455261438986,
+    "p50": 0.28293293450042256,
+    "p95": 0.3998528352485664,
+    "max": 0.7021711839988711
+  },
+  "fresh_action_sim_interval_s": {
+    "n": 306,
+    "mean": 0.2885490196078431,
+    "p50": 0.2600000000000051,
+    "p95": 0.3120000000000118,
+    "max": 0.6760000000000019
+  },
+  "fresh_action_sim_gap_over_0_30s": 127,
+  "computed_fresh_accepted_actions": 307,
+  "computed_fresh_action_wall_interval_s": {
+    "n": 306,
+    "mean": 0.28913455261438986,
+    "p50": 0.28293293450042256,
+    "p95": 0.3998528352485664,
+    "max": 0.7021711839988711
+  },
+  "computed_fresh_action_sim_interval_s": {
+    "n": 306,
+    "mean": 0.2885490196078431,
+    "p50": 0.2600000000000051,
+    "p95": 0.3120000000000118,
+    "max": 0.6760000000000019
+  },
+  "computed_scan_to_candidate_wall_ms": {
+    "n": 307,
+    "mean": 221.76200736484984,
+    "p50": 235.08441200101515,
+    "p95": 290.05879560099856,
+    "max": 342.5754429990775
+  },
+  "computed_scan_to_candidate_sim_ms": {
+    "n": 307,
+    "mean": 225.81107491856937,
+    "p50": 243.99999999999977,
+    "p95": 292.0000000000016,
+    "max": 344.0000000000012
+  },
+  "computed_state_to_response_wall_ms": {
+    "n": 307,
+    "mean": 142.60095003267804,
+    "p50": 143.02721200147062,
+    "p95": 187.83362710018991,
+    "max": 226.7197799992573
+  },
+  "computed_scan_to_response_wall_ms": {
+    "n": 307,
+    "mean": 197.49657776554082,
+    "p50": 197.650728001463,
+    "p95": 255.19578330131478,
+    "max": 306.9533189991489
+  },
+  "computed_250ms_rpc_budget_met": true,
+  "state_roundtrip_ms": {
+    "n": 307,
+    "mean": 142.60095003267804,
+    "p50": 143.02721200147062,
+    "p95": 187.83362710018991,
+    "max": 226.7197799992573
+  },
+  "scan_to_candidate_wall_ms": {
+    "n": 307,
+    "mean": 221.76200736484984,
+    "p50": 235.08441200101515,
+    "p95": 290.05879560099856,
+    "max": 342.5754429990775
+  },
+  "scan_to_candidate_sim_ms": {
+    "n": 307,
+    "mean": 225.81107491856937,
+    "p50": 243.99999999999977,
+    "p95": 292.0000000000016,
+    "max": 344.0000000000012
+  },
+  "candidate_wall_interval_s": {
+    "n": 1781,
+    "mean": 0.0500275164587318,
+    "p50": 0.050965114001883194,
+    "p95": 0.05252184200071497,
+    "max": 0.08230215399817098
+  },
+  "candidate_sim_interval_s": {
+    "n": 1781,
+    "mean": 0.04998090960134756,
+    "p50": 0.04800000000000182,
+    "p95": 0.05200000000000671,
+    "max": 0.05200000000000671
+  },
+  "invalid_candidate_nonzero": 0,
+  "command_rejected_messages": 0,
+  "command_rejection_reasons": {},
+  "halt_reasons": {
+    "lidar_disconnected": 4
+  },
+  "first_scan_sim_s": 1.508,
+  "last_scan_sim_s": 90.108,
+  "observed_scan_wall_span_s": 88.60307982800077
+}

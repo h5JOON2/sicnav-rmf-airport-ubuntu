@@ -1,0 +1,15 @@
+.venv*/
+vendor/
+models/*.pth
+logs/
+samples/
+runtime-controller/
+controller/runtime*/
+controller/jmid_mps_overlay/
+archive/
+__pycache__/
+*.py[cod]
+*.dylib
+*.so
+*.npz
+validation/capture*/

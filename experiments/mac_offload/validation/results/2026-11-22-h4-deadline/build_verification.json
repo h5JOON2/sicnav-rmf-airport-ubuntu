@@ -1,0 +1,86 @@
+{
+  "verified": true,
+  "restored_flags": "-O3 -ffast-math",
+  "rebuilt_native_models": [
+    {
+      "people": 1,
+      "kind": "jmid",
+      "model_cache_key": "b1b4be106d2af72a",
+      "horizon": 4,
+      "compiler_flags": "-O3 -ffast-math",
+      "actual_Makefile_CFLAGS": "CFLAGS = -fPIC -std=c99   -O3 -ffast-math#-fno-diagnostics-show-line-numbers -g",
+      "binary_path": "runtime-controller/people-1/models/b1b4be106d2af72a/generated_jmid/libacados_ocp_solver_sicnav_arena10_jmid.dylib",
+      "binary_sha256": "8b3a25ba97fcf9129dc5efd2e59fc7dde5d29d634d05d28b5e5ad0bc9a6a04d3",
+      "binary_modified_utc": "2026-11-22T10:30:35.339820+00:00"
+    },
+    {
+      "people": 1,
+      "kind": "orca",
+      "model_cache_key": "b1b4be106d2af72a",
+      "horizon": 4,
+      "compiler_flags": "-O3 -ffast-math",
+      "actual_Makefile_CFLAGS": "CFLAGS = -fPIC -std=c99   -O3 -ffast-math#-fno-diagnostics-show-line-numbers -g",
+      "binary_path": "runtime-controller/people-1/models/b1b4be106d2af72a/generated_orca/libacados_ocp_solver_sicnav_arena10_orca.dylib",
+      "binary_sha256": "7d62eb65938c903782ff7a652cc025229adeacb3de2dd071ef0b08a05baa538a",
+      "binary_modified_utc": "2026-11-22T10:31:01.952083+00:00"
+    },
+    {
+      "people": 2,
+      "kind": "jmid",
+      "model_cache_key": "569f77cce3ae91c2",
+      "horizon": 4,
+      "compiler_flags": "-O3 -ffast-math",
+      "actual_Makefile_CFLAGS": "CFLAGS = -fPIC -std=c99   -O3 -ffast-math#-fno-diagnostics-show-line-numbers -g",
+      "binary_path": "runtime-controller/people-2/models/569f77cce3ae91c2/generated_jmid/libacados_ocp_solver_sicnav_arena10_jmid.dylib",
+      "binary_sha256": "6a1c6ec52f6d11fca884e0671b11f1820f6ede5e81f1cdbcb9f08f2f437a6910",
+      "binary_modified_utc": "2026-11-22T10:33:42.240457+00:00"
+    },
+    {
+      "people": 2,
+      "kind": "orca",
+      "model_cache_key": "569f77cce3ae91c2",
+      "horizon": 4,
+      "compiler_flags": "-O3 -ffast-math",
+      "actual_Makefile_CFLAGS": "CFLAGS = -fPIC -std=c99   -O3 -ffast-math#-fno-diagnostics-show-line-numbers -g",
+      "binary_path": "runtime-controller/people-2/models/569f77cce3ae91c2/generated_orca/libacados_ocp_solver_sicnav_arena10_orca.dylib",
+      "binary_sha256": "c54a5f4bccbe5f54bb0feecefa8f6a0be35c685ad7c7f5f9cc9fd83af348a20f",
+      "binary_modified_utc": "2026-11-22T10:35:03.158943+00:00"
+    },
+    {
+      "people": 3,
+      "kind": "jmid",
+      "model_cache_key": "32118599027af9ca",
+      "horizon": 4,
+      "compiler_flags": "-O3 -ffast-math",
+      "actual_Makefile_CFLAGS": "CFLAGS = -fPIC -std=c99   -O3 -ffast-math#-fno-diagnostics-show-line-numbers -g",
+      "binary_path": "runtime-controller/people-3/models/32118599027af9ca/generated_jmid/libacados_ocp_solver_sicnav_arena10_jmid.dylib",
+      "binary_sha256": "ff371884e0b1c2869522aa942a4c230c2b0a857ec4bd3d0a0d82a03946a3124c",
+      "binary_modified_utc": "2026-11-22T10:40:43.499299+00:00"
+    },
+    {
+      "people": 3,
+      "kind": "orca",
+      "model_cache_key": "32118599027af9ca",
+      "horizon": 4,
+      "compiler_flags": "-O3 -ffast-math",
+      "actual_Makefile_CFLAGS": "CFLAGS = -fPIC -std=c99   -O3 -ffast-math#-fno-diagnostics-show-line-numbers -g",
+      "binary_path": "runtime-controller/people-3/models/32118599027af9ca/generated_orca/libacados_ocp_solver_sicnav_arena10_orca.dylib",
+      "binary_sha256": "a516423ae16488a3bc8a19c0593b4d0313ae9dc540e55e68e5c63a0dd1837484",
+      "binary_modified_utc": "2026-11-22T10:43:50.641757+00:00"
+    }
+  ],
+  "new_velocity_limits": {
+    "linear_mps": 0.31,
+    "angular_radps": 1.9
+  },
+  "unchanged_capture_conditions": {
+    "horizon": 4,
+    "SQP": 4,
+    "QP_per_SQP": 5,
+    "GT_people": 3,
+    "JMID": "MPS",
+    "mode": "shadow"
+  },
+  "reused_not_rebuilt": true,
+  "all_binary_hashes_equal_previous_h4": true
+}

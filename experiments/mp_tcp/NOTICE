@@ -1,0 +1,18 @@
+This experimental Mac-to-Ubuntu TCP controller uses SICNav / SICNav-Diffusion:
+https://github.com/sepsamavi/safe-interactive-crowdnav
+Tested upstream commit: c702fb8ac9ba6439ca61da7dde68b8524bbc6a1f
+The upstream MIT license is reproduced in UPSTREAM_LICENSE.
+
+Acados is an external dependency, tested at:
+285d382b6c6d59c0983644caf6ed2924ed2153cb
+https://github.com/acados/acados
+Its own license and dependency licenses apply to those external libraries.
+No compiled Acados, model weights, generated solver binaries, or private
+experiment documents are included here.
+
+Set SICNAV_MP_ROOT to the tested environment with work/repo, work/acados,
+and work/venv. Build local Mac native helper libraries with build_native.py
+before launching run_mp_tcp.command. See run_mp_tcp.py --help for options.
+Default MPC horizon: eight 0.25-second stages; --mpc-horizon 7 selects seven.
+JMID remains at eight prediction stages. This experiment does not replace
+the existing Ubuntu-only controller at the root of the repository.
