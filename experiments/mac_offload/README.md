@@ -1,6 +1,6 @@
 # LiDAR / GT Mac offload with deadline-aware JMID MPC
 
-ROS2 observations → Mac pedestrian perception → JMID on MPS / native MPC on CPU → guarded velocity commands. The bundled controller is used by default; `../mp_tcp` remains unchanged.
+ROS2 observations → Mac pedestrian perception → JMID on MPS / native MPC on CPU → guarded velocity commands. The bundled `controller/` is the active implementation; Ubuntu only runs simulation and the transport gateway.
 
 ## Current behavior
 

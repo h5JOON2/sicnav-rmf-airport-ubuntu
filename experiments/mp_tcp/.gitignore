@@ -1,7 +1,0 @@
-__pycache__/
-*.py[cod]
-*.dylib
-*.so
-runtime*/
-jmid_mps_overlay/
-*.npz

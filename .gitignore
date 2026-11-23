@@ -38,3 +38,11 @@ dist/
 
 # Local diagnostic scripts
 /work/
+
+# Local Mac offload dependencies and observations
+.venv*/
+**/runtime*/
+**/logs/
+**/vendor/
+experiments/mac_offload/models/
+*.before-*
